@@ -34,6 +34,13 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            // Global Asset Paths Definition
+            'appConfig' => [
+                'logo' => asset('loginPage/logo.png'),
+                'favicon' => asset('company/favicon.ico'),
+                'watermark' => asset('loginPage/bg-watermark.png'),
+                'name' => config('app.name', 'CoreERP'),
+            ],
         ];
     }
 }

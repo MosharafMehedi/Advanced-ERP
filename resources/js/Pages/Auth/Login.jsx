@@ -1,36 +1,62 @@
 import Checkbox from '@/Components/Checkbox';
-import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
+import Swal from 'sweetalert2';
 
-export default function Login({ status, canResetPassword }) {
+export default function Login({ status }) {
     const [showPassword, setShowPassword] = useState(false);
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, reset } = useForm({
         email: '',
         password: '',
         remember: false,
     });
 
+    // Reusable utility function to handle theme-compliant SweetAlerts dynamically based on system config
+    const fireAlert = (options) => {
+        const isDark = document.documentElement.classList.contains('dark');
+        return Swal.fire({
+            ...options,
+            background: isDark ? '#0f172a' : '#ffffff', // slate-900 / white
+            color: isDark ? '#f8fafc' : '#0f172a',      // slate-50 / slate-900
+            confirmButtonColor: '#4f46e5',               // indigo-600
+            cancelButtonColor: '#64748b',                // slate-500
+            customClass: {
+                popup: 'rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl font-sans',
+                title: 'font-bold text-xl',
+                htmlContainer: 'text-sm'
+            }
+        });
+    };
+
     const submit = (e) => {
         e.preventDefault();
+        
         post(route('login'), {
+            onError: (err) => {
+                fireAlert({
+                    icon: 'error',
+                    title: 'Authentication Failed',
+                    text: err.email || err.password || 'Please check your credential tokens.',
+                });
+                reset('password');
+            },
             onFinish: () => reset('password'),
         });
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 font-sans antialiased selection:bg-indigo-600 selection:text-white relative overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 font-sans antialiased selection:bg-indigo-600 selection:text-white relative overflow-hidden transition-colors duration-300">
             <Head title="ERP Login" />
 
             {/* --- Easily Replaceable Background Watermark Image --- */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 scale-100 sm:scale-110 opacity-[0.04] dark:opacity-[0.03]">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 scale-100 sm:scale-110 opacity-[0.04] dark:opacity-[0.02] transition-opacity duration-300">
                 <img 
                     src="/loginPage/logo.png" 
                     alt="System Watermark" 
-                    className="w-[550px] h-[550px] object-contain"
+                    className="w-[550px] h-[550px] object-contain dark:invert"
                 />
             </div>
 
@@ -46,23 +72,16 @@ export default function Login({ status, canResetPassword }) {
                         <img 
                             src="/loginPage/logo.png" 
                             alt="Company Logo" 
-                            className="h-14 w-auto object-contain max-w-[120px]"
+                            className="h-14 w-auto object-contain max-w-[120px] dark:brightness-125"
                         />
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight transition-colors duration-300">
                         Welcome to CoreERP
                     </h2>
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 transition-colors duration-300">
                         Please sign in to access your dashboard workstation.
                     </p>
                 </div>
-
-                {/* Session Alerts */}
-                {status && (
-                    <div className="mb-4 p-3.5 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/40 text-sm font-medium text-green-700 dark:text-green-400">
-                        {status}
-                    </div>
-                )}
 
                 {/* --- Standard Card Form (Updated with High-End Layout) --- */}
                 <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-7 sm:p-8 shadow-2xl shadow-slate-200/30 dark:shadow-none transition-all duration-300">
@@ -70,7 +89,7 @@ export default function Login({ status, canResetPassword }) {
                         
                         {/* Email Address Input */}
                         <div>
-                            <InputLabel htmlFor="email" value="Email Address" className="text-slate-700 dark:text-slate-300 font-semibold text-sm" />
+                            <InputLabel htmlFor="email" value="Email Address" className="text-slate-700 dark:text-slate-300 font-semibold text-sm transition-colors duration-300" />
                             <div className="mt-1.5 relative rounded-xl shadow-sm">
                                 {/* Inline Email Icon */}
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
@@ -87,17 +106,16 @@ export default function Login({ status, canResetPassword }) {
                                     placeholder="name@company.com"
                                     autoComplete="username"
                                     isFocused={true}
+                                    required
                                     onChange={(e) => setData('email', e.target.value)}
                                 />
                             </div>
-                            <InputError message={errors.email} className="mt-2 text-xs text-red-500" />
                         </div>
 
                         {/* Password Input */}
                         <div>
                             <div className="flex justify-between items-center">
-                                <InputLabel htmlFor="password" value="Password" className="text-slate-700 dark:text-slate-300 font-semibold text-sm" />
-                                
+                                <InputLabel htmlFor="password" value="Password" className="text-slate-700 dark:text-slate-300 font-semibold text-sm transition-colors duration-300" />
                             </div>
                             <div className="mt-1.5 relative rounded-xl shadow-sm">
                                 {/* Inline Lock Icon */}
@@ -114,6 +132,7 @@ export default function Login({ status, canResetPassword }) {
                                     className="block w-full pl-10 pr-10 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-indigo-500 focus:ring focus:ring-indigo-500/10 transition-all duration-200 shadow-sm"
                                     placeholder="••••••••"
                                     autoComplete="current-password"
+                                    required
                                     onChange={(e) => setData('password', e.target.value)}
                                 />
                                 {/* Show/Hide Toggle Eye Button */}
@@ -129,7 +148,6 @@ export default function Login({ status, canResetPassword }) {
                                     )}
                                 </button>
                             </div>
-                            <InputError message={errors.password} className="mt-2 text-xs text-red-500" />
                         </div>
 
                         {/* Remember Session */}
@@ -170,7 +188,7 @@ export default function Login({ status, canResetPassword }) {
                 </div>
 
                 {/* Footer Security Note */}
-                <div className="text-center mt-6 text-[11px] font-medium tracking-wider text-slate-400 dark:text-slate-600 uppercase flex items-center justify-center gap-1">
+                <div className="text-center mt-6 text-[11px] font-medium tracking-wider text-slate-400 dark:text-slate-600 uppercase flex items-center justify-center gap-1 transition-colors duration-300">
                     🛡️ Enterprise Secured Environment
                 </div>
             </div>
