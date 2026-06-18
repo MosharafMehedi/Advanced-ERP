@@ -2,6 +2,7 @@ import Checkbox from '@/Components/Checkbox';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import ThemeToggle from '@/Components/ThemeToggle'; // 👈 Import ti thik kora holo
 import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
@@ -50,6 +51,11 @@ export default function Login({ status }) {
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 font-sans antialiased selection:bg-indigo-600 selection:text-white relative overflow-hidden transition-colors duration-300">
             <Head title="ERP Login" />
+            
+            {/* Position absolute wrapper map context format layout to prevent dynamic styling break */}
+            <div className="absolute top-5 right-5 z-50">
+                <ThemeToggle />
+            </div>
 
             {/* --- Easily Replaceable Background Watermark Image --- */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 scale-100 sm:scale-110 opacity-[0.04] dark:opacity-[0.02] transition-opacity duration-300">
@@ -91,7 +97,6 @@ export default function Login({ status }) {
                         <div>
                             <InputLabel htmlFor="email" value="Email Address" className="text-slate-700 dark:text-slate-300 font-semibold text-sm transition-colors duration-300" />
                             <div className="mt-1.5 relative rounded-xl shadow-sm">
-                                {/* Inline Email Icon */}
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -118,7 +123,6 @@ export default function Login({ status }) {
                                 <InputLabel htmlFor="password" value="Password" className="text-slate-700 dark:text-slate-300 font-semibold text-sm transition-colors duration-300" />
                             </div>
                             <div className="mt-1.5 relative rounded-xl shadow-sm">
-                                {/* Inline Lock Icon */}
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -135,7 +139,6 @@ export default function Login({ status }) {
                                     required
                                     onChange={(e) => setData('password', e.target.value)}
                                 />
-                                {/* Show/Hide Toggle Eye Button */}
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
