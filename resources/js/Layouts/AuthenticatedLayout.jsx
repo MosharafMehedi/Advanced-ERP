@@ -1,7 +1,8 @@
 import { usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import Sidebar from '@/Components/Sidebar'; // 👈 সাইডবার ইম্পোর্ট
-import Header from '@/Components/Header';   // 👈 হেডার ইম্পোর্ট
+import Sidebar from '@/Components/Sidebar';
+import Header from '@/Components/Header';
+import Footer from '@/Components/Footer';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
@@ -41,6 +42,7 @@ export default function AuthenticatedLayout({ header, children }) {
                         {children}
                     </div>
                 </main>
+                <Footer />
             </div>
         </div>
     );
