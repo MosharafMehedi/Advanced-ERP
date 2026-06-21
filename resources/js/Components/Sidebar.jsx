@@ -7,18 +7,15 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
         {
             name: "Dashboard",
             route: "dashboard",
+            activePrefix: "dashboard", // রুট প্রিফিক্স ট্র্যাকিংয়ের জন্য
             icon: FiGrid,
         },
         {
             name: "User Management",
             route: "users.index",
+            activePrefix: "users",    // users.create, users.edit সব কাভার করবে
             icon: FiUsers,
         },
-        // {
-        //     name: 'System Settings',
-        //     route: 'settings.edit',
-        //     icon: FiSettings,
-        // }
     ];
 
     return (
@@ -26,10 +23,10 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
             {/* Sidebar Container */}
             <aside
                 className={`
-                fixed inset-y-0 start-0 z-50 w-64 transform border-e border-slate-200/80 bg-white p-4 transition-transform duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-900
-                lg:translate-x-0 lg:static lg:inset-0
-                ${showingSidebar ? "translate-x-0" : "-translate-x-full"}
-            `}
+                    fixed inset-y-0 start-0 z-50 w-64 transform border-e border-slate-200/80 bg-white p-4 transition-transform duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-900
+                    lg:translate-x-0 lg:static lg:inset-0
+                    ${showingSidebar ? "translate-x-0" : "-translate-x-full"}
+                `}
             >
                 {/* Logo Area */}
                 <div className="flex h-16 items-center justify-between px-2 border-b border-slate-100 dark:border-slate-800 mb-6">
@@ -51,9 +48,11 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                 {/* Dynamic Sidebar Menus */}
                 <nav className="space-y-1 px-1">
                     {menuItems.map((item, index) => {
+                        // এখানে সুনির্দিষ্ট রুট অথবা ওয়াইল্ডকার্ড প্রিফিক্স (যেমন: users.*) চেক করা হচ্ছে
                         const isActive =
                             route().current(item.route) ||
-                            route().current(item.route + ".*");
+                            route().current(item.activePrefix + ".*");
+                            
                         const Icon = item.icon;
 
                         return (
@@ -71,13 +70,13 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                             >
                                 <Icon
                                     className={`
-                                    h-5 w-5 shrink-0 transition-colors duration-200
-                                    ${
-                                        isActive
-                                            ? "text-indigo-600 dark:text-indigo-400"
-                                            : "text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300"
-                                    }
-                                `}
+                                        h-5 w-5 shrink-0 transition-colors duration-200
+                                        ${
+                                            isActive
+                                                ? "text-indigo-600 dark:text-indigo-400"
+                                                : "text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300"
+                                        }
+                                    `}
                                 />
                                 <span>{item.name}</span>
                             </Link>

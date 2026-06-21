@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -13,10 +14,13 @@ class UserController extends Controller
     {
         $query = User::query();
 
-        if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%')
+        // ফিক্সড: orWhere গুলোকে একটি ক্লোজারের (Logical Grouping) মধ্যে রাখা হয়েছে
+        if ($request->has('search') && $request->search != '') {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('email', 'like', '%' . $request->search . '%')
                   ->orWhere('employee_id', 'like', '%' . $request->search . '%');
+            });
         }
 
         $users = $query->latest()->paginate(10)->withQueryString();
@@ -27,11 +31,18 @@ class UserController extends Controller
         ]);
     }
 
+    // নতুন যুক্ত করা শো মেথড
+    public function show(User $user)
+    {
+        return Inertia::render('Users/Show', [
+            'user' => $user
+        ]);
+    }
+
     public function create()
     {
-        // এখানে আপনার ডাটাবেজ থেকে Roles, Departments, Branches পাঠানো উচিত
         return Inertia::render('Users/Create', [
-            'roles' => ['Admin', 'Manager', 'Operator'], // Mock data, Spatie বা টেবিল থেকে আনবেন
+            'roles' => ['Admin', 'Manager', 'Operator'], 
             'departments' => ['IT', 'HR', 'Remittance', 'Accounts'],
             'branches' => ['Dhaka Main Branch', 'Chittagong Branch', 'Sylhet Branch']
         ]);
