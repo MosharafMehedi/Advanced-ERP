@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "@inertiajs/react";
-import { FiGrid, FiUsers, FiX, FiChevronLeft } from "react-icons/fi";
+import { Link,usePage } from "@inertiajs/react";
+import { FiGrid, FiUsers, FiX, FiChevronLeft,FiSettings,FiLayers,FiMapPin } from "react-icons/fi";
 
 export default function Sidebar({ showingSidebar, setShowingSidebar }) {
+    const { globalSettings } = usePage().props;
     const [collapsed, setCollapsed] = useState(() => {
         try { return localStorage.getItem('sidebar_collapsed') === 'true'; }
         catch { return false; }
@@ -35,6 +36,10 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
             label: "Management",
             items: [
                 { id: "users", name: "Users", route: "users.index", activePrefix: "users", icon: FiUsers, badge: null },
+                { id: "settings", name: "Settings", route: "settings.index", activePrefix: "settings", icon: FiSettings, badge: null },
+                { id: "departments", name: "Departments", route: "departments.index", activePrefix: "departments", icon: FiLayers, badge: null },
+                { id: "branches", name: "Branches", route: "branches.index", activePrefix: "branches", icon: FiMapPin, badge: null },
+
             ],
         },
     ];
@@ -60,7 +65,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                         display: "flex",
                         alignItems: "center",
                         gap: showLabel ? "12px" : "0",
-                        padding: "10px 12px",
+                        padding: "8px 12px",
                         justifyContent: showLabel ? "flex-start" : "center",
                         borderRadius: "8px",
                         fontSize: "13px",
@@ -69,13 +74,11 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                         position: "relative",
                         transition: "all 0.2s ease",
                         background: isActive 
-                            ? "rgba(99, 102, 241, 0.15)" 
-                            : isHovered ? "rgba(255, 255, 255, 0.05)" : "transparent",
-                        color: isActive 
-                            ? "#a5b4fc" 
-                            : isHovered ? "#f8fafc" : "#94a3b8",
+                            ? "rgba(99, 102, 241, 0.2)" 
+                            : isHovered ? "rgba(255, 255, 255, 0.08)" : "transparent",
+                        color: "#ffffff", 
                         textDecoration: "none",
-                        overflow: "hidden" /* সাইড স্ক্রলবার চিরতরে বন্ধ করার জন্য */
+                        overflow: "hidden"
                     }}
                 >
                     {/* Active Left Indicator Bar */}
@@ -97,10 +100,10 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                         display: "flex", 
                         alignItems: "center", 
                         justifyContent: "center",
-                        width: "24px", 
-                        height: "24px", 
+                        width: "18px", 
+                        height: "18px", 
                         flexShrink: 0,
-                        color: isActive ? "#818cf8" : "inherit",
+                        color: "#ffffff",
                         transition: "color 0.2s",
                     }}>
                         <Icon size={18} />
@@ -110,7 +113,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                     {showLabel && (
                         <span style={{ 
                             flex: 1, 
-                            lineHeight: 1, 
+                            lineHeight: 1.2, 
                             whiteSpace: "nowrap", 
                             overflow: "hidden",
                             textOverflow: "ellipsis"
@@ -120,19 +123,18 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                     )}
                 </Link>
 
-                {/* ── Fixed Tooltip: Fixed position ব্যবহার করা হয়েছে যাতে overflow প্রপার্টি একে লুকাতে না পারে ── */}
+                {/* Tooltip */}
                 {!showLabel && isHovered && (
                     <div 
                         style={{
-                            position: "fixed", /* absolute থেকে fixed করায় স্ক্রল ডিভের বাইরে চলে আসবে */
+                            position: "fixed",
                             left: "76px", 
-                            // স্ক্রিনের সাপেক্ষে মাউস পজিশন অটো সিঙ্ক করার জন্য সিএসএস ট্রিকস
                             transform: "translateY(-38px)", 
                             background: "#0f172a", 
                             color: "#f8fafc",
-                            fontSize: "12px", 
-                            fontWeight: "500",
-                            padding: "6px 12px", 
+                            fontSize: "11px", 
+                            fontWeight: "400",
+                            padding: "4px 8px", 
                             borderRadius: "6px",
                             border: "1px solid rgba(255,255,255,0.15)",
                             whiteSpace: "nowrap", 
@@ -152,7 +154,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
         <div style={{ 
             flex: 1, 
             overflowY: "auto", 
-            overflowX: "hidden", /* নিচে বা ডানে বামে স্ক্রলবার আসা টোটালি অফ */
+            overflowX: "hidden",
             padding: "8px" 
         }}>
             {menuGroups.map((group, gi) => (
@@ -166,7 +168,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                             fontWeight: 600,
                             textTransform: "uppercase", 
                             letterSpacing: "0.05em",
-                            color: "#475569", 
+                            color: "#94a3b8", 
                             padding: "0 12px", 
                             marginBottom: "8px",
                             whiteSpace: "nowrap",
@@ -204,7 +206,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                     position: "relative"
                 }}>
                     {showLabel && (
-                        <span style={{ fontSize: "13px", fontWeight: 500, color: "#94a3b8", whiteSpace: "nowrap" }}>
+                        <span style={{ fontSize: "13px", fontWeight: 500, color: "#ffffff", whiteSpace: "nowrap" }}>
                             Logout
                         </span>
                     )}
@@ -239,9 +241,9 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                                     transform: "translateY(-24px)",
                                     background: "#0f172a", 
                                     color: "#f8fafc",
-                                    fontSize: "12px", 
+                                    fontSize: "10px", 
                                     fontWeight: 500,
-                                    padding: "6px 12px", 
+                                    padding: "4px 8px", 
                                     borderRadius: "6px",
                                     border: "1px solid rgba(255,255,255,0.15)",
                                     whiteSpace: "nowrap", 
@@ -275,7 +277,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                 <div style={{
                     display: "flex",
                     justifyContent: collapsed ? "center" : "flex-end",
-                    padding: "12px",
+                    padding: "4px",
                     flexShrink: 0,
                     background: "#1e2e38",
                     borderBottom: "1px solid rgba(255,255,255,0.02)"
@@ -286,10 +288,10 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                             width: 32, height: 32, borderRadius: 6, border: "none", cursor: "pointer",
                             background: "rgba(255,255,255,0.04)",
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            color: "#94a3b8", transition: "all 0.15s",
+                            color: "#ffffff", transition: "all 0.15s",
                         }}
                         onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#f8fafc"; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "#94a3b8"; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "#ffffff"; }}
                         title={collapsed ? "Expand" : "Collapse"}
                     >
                         <FiChevronLeft
@@ -350,7 +352,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                                 </svg>
                             </div>
                             <span style={{ fontSize: 14, fontWeight: 700, color: "#fff", letterSpacing: "-0.2px" }}>
-                                CoreERP
+                                {globalSettings?.app_name || 'My Application'}
                             </span>
                         </div>
                         <button
@@ -359,7 +361,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                                 width: 28, height: 28, borderRadius: 6, border: "none", cursor: "pointer",
                                 background: "rgba(255,255,255,0.05)",
                                 display: "flex", alignItems: "center", justifyContent: "center",
-                                color: "#94a3b8",
+                                color: "#ffffff",
                             }}
                         >
                             <FiX size={14} />

@@ -14,7 +14,6 @@ class UserController extends Controller
     {
         $query = User::query();
 
-        // ফিক্সড: orWhere গুলোকে একটি ক্লোজারের (Logical Grouping) মধ্যে রাখা হয়েছে
         if ($request->has('search') && $request->search != '') {
             $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
@@ -31,7 +30,6 @@ class UserController extends Controller
         ]);
     }
 
-    // নতুন যুক্ত করা শো মেথড
     public function show(User $user)
     {
         return Inertia::render('Users/Show', [

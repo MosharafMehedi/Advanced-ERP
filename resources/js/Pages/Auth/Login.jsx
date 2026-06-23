@@ -3,11 +3,12 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import ThemeToggle from '@/Components/ThemeToggle'; // 👈 Import ti thik kora holo
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm,usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 
 export default function Login({ status }) {
+    const { globalSettings } = usePage().props;
     const [showPassword, setShowPassword] = useState(false);
     const { data, setData, post, processing, reset } = useForm({
         email: '',
@@ -75,14 +76,18 @@ export default function Login({ status }) {
                 {/* Brand Header */}
                 <div className="text-center mb-6">
                     <div className="inline-block mb-3">
+                        {globalSettings?.logo_url ? (
                         <img 
-                            src="/loginPage/logo.png" 
-                            alt="Company Logo" 
-                            className="h-14 w-auto object-contain max-w-[120px] dark:brightness-125"
+                            src={globalSettings.logo_url} 
+                            alt={globalSettings?.app_name || "Logo"} 
+                            className="block h-6 w-auto md:h-8 object-contain" 
                         />
+                    ) : (
+                        <ApplicationLogo className="block h-6 w-6 md:h-8 md:w-auto fill-current text-[#A7F3D0] dark:text-indigo-400" />
+                    )}
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight transition-colors duration-300">
-                        Welcome to CoreERP
+                        Welcome to {globalSettings?.app_name || 'My Application'}
                     </h2>
                     <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 transition-colors duration-300">
                         Please sign in to access your dashboard workstation.
