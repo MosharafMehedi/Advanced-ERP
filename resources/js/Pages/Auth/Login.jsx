@@ -2,7 +2,9 @@ import Checkbox from '@/Components/Checkbox';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import ThemeToggle from '@/Components/ThemeToggle'; // 👈 Import ti thik kora holo
+import ThemeToggle from '@/Components/ThemeToggle';
+import ApplicationLogo from '@/Components/ApplicationLogo';
+
 import { Head, useForm,usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
