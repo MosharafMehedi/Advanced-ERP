@@ -1,16 +1,71 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
-import { FiPlus, FiSearch, FiEdit, FiTrash2 } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiEdit, FiTrash2, FiHome, FiX, FiInbox, FiDownload, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import Swal from 'sweetalert2';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+// Formal, rectangular status chips — consistent with the Users / Departments master lists.
+const STATUS = {
+    1: {
+        label: 'Active',
+        classes: 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500',
+    },
+    0: {
+        label: 'Inactive',
+        classes: 'bg-slate-100 text-slate-600 border-l-4 border-slate-400 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500',
+    },
+    2: {
+        label: 'Suspended',
+        classes: 'bg-rose-50 text-rose-700 border-l-4 border-rose-600 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500',
+    },
+};
+
+function swalTheme() {
+    const isDark = document.documentElement.classList.contains('dark');
+    return {
+        background: isDark ? '#0f172a' : '#ffffff',
+        color: isDark ? '#f1f5f9' : '#0f172a',
+    };
+}
+
+function derivePageInfo(branches) {
+    if (!Array.isArray(branches.links)) return { current: null, last: null };
+    if (branches.current_page && branches.last_page) {
+        return { current: branches.current_page, last: branches.last_page };
+    }
+    const numeric = branches.links.filter((l) => !isNaN(Number(l.label)));
+    const active = branches.links.find((l) => l.active);
+    return {
+        current: active && !isNaN(Number(active.label)) ? Number(active.label) : null,
+        last: numeric.length ? Number(numeric[numeric.length - 1].label) : null,
+    };
+}
 
 export default function Index({ branches, filters }) {
     const [search, setSearch] = useState(filters.search || '');
     const [status, setStatus] = useState(filters.status || '');
+    const [selectedIds, setSelectedIds] = useState([]);
+    const hasPagination = Array.isArray(branches.links) && branches.links.length > 3;
+    const { current: currentPage, last: lastPage } = derivePageInfo(branches);
+    const totalCount = branches.total ?? branches.data.length;
+
+    useEffect(() => {
+        setSelectedIds([]);
+    }, [branches.data]);
 
     const handleSearch = (e) => {
         e.preventDefault();
         router.get(route('branches.index'), { search, status }, { preserveState: true });
+    };
+
+    const allOnPageSelected = branches.data.length > 0 && branches.data.every((b) => selectedIds.includes(b.id));
+
+    const toggleAll = () => {
+        setSelectedIds(allOnPageSelected ? [] : branches.data.map((b) => b.id));
+    };
+
+    const toggleOne = (id) => {
+        setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
     };
 
     const handleDelete = (id) => {
@@ -22,135 +77,383 @@ export default function Index({ branches, filters }) {
             confirmButtonColor: '#ef4444',
             cancelButtonColor: '#64748b',
             confirmButtonText: 'Yes, delete it!',
-            background: document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff',
-            color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#0f172a',
+            ...swalTheme(),
         }).then((result) => {
             if (result.isConfirmed) {
                 router.delete(route('branches.destroy', id), {
-                    onSuccess: () => Swal.fire({
-                        title: 'Deleted!',
-                        text: 'Branch deleted successfully.',
-                        icon: 'success',
-                        timer: 1500,
-                        showConfirmButton: false,
-                        background: document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff',
-                        color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#0f172a',
-                    }),
+                    onSuccess: () =>
+                        Swal.fire({
+                            title: 'Deleted!',
+                            text: 'Branch deleted successfully.',
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false,
+                            ...swalTheme(),
+                        }),
                     onError: (errors) => {
-                        if(errors.error) {
+                        if (errors.error) {
                             Swal.fire({
                                 title: 'Failed!',
                                 text: errors.error,
                                 icon: 'error',
-                                confirmButtonColor: '#4f46e5',
-                                background: document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff',
-                                color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#0f172a',
+                                confirmButtonColor: '#1d4ed8',
+                                ...swalTheme(),
                             });
                         }
-                    }
+                    },
                 });
             }
         });
     };
 
-    const getStatusBadge = (status) => {
-        const styles = {
-            1: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-500/20',
-            0: 'bg-slate-100 text-slate-700 dark:bg-slate-500/10 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50',
-            2: 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200/50 dark:border-rose-500/20'
-        };
-        const labels = { 1: 'Active', 0: 'Inactive', 2: 'Suspended' };
-        return <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${styles[status]}`}>{labels[status]}</span>;
+    // Bulk delete — sequential, since Inertia handles one in-flight visit at a time.
+    const handleBulkDelete = () => {
+        if (selectedIds.length === 0) return;
+        Swal.fire({
+            title: `Delete ${selectedIds.length} branch(es)?`,
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, delete them!',
+            ...swalTheme(),
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            const failed = [];
+            const deleteNext = (ids) => {
+                if (ids.length === 0) {
+                    setSelectedIds([]);
+                    if (failed.length === 0) {
+                        Swal.fire({
+                            title: 'Deleted!',
+                            text: 'Selected branches were deleted.',
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false,
+                            ...swalTheme(),
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Partially completed',
+                            text: `${failed.length} branch(es) could not be deleted (likely in use).`,
+                            icon: 'warning',
+                            confirmButtonColor: '#1d4ed8',
+                            ...swalTheme(),
+                        });
+                    }
+                    return;
+                }
+                const [id, ...rest] = ids;
+                router.delete(route('branches.destroy', id), {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onError: () => failed.push(id),
+                    onFinish: () => deleteNext(rest),
+                });
+            };
+            deleteNext(selectedIds);
+        });
+    };
+
+    const exportCsv = () => {
+        const headers = ['Branch Code', 'Branch Name', 'Phone', 'Email', 'Status'];
+        const rows = branches.data.map((b) => [
+            b.branch_code,
+            b.name,
+            b.phone || '',
+            b.email || '',
+            STATUS[b.status]?.label || '',
+        ]);
+        const csv = [headers, ...rows]
+            .map((row) => row.map((v) => `"${(v ?? '').toString().replace(/"/g, '""')}"`).join(','))
+            .join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `branches-page-${currentPage ?? 1}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-bold text-slate-800 dark:text-slate-200">Branches Management</h2>}>
+        <AuthenticatedLayout
+            header={<h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Branch Management</h2>}
+        >
             <Head title="Branches" />
 
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm rounded-2xl p-6">
-                
-                {/* User-এর মতো ফিল্টার এবং অ্যাকশন বাটন ডিজাইন */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                        <div className="relative flex-1 md:w-64">
-                            <FiSearch className="absolute left-3.5 top-3 text-slate-400" />
-                            <input 
-                                type="text" 
-                                value={search} 
-                                onChange={e => setSearch(e.target.value)}
-                                placeholder="Search code or name..."
-                                className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-slate-300"
-                            />
+            <div className="min-h-full bg-slate-100 dark:bg-slate-950 -m-4 sm:-m-6 p-4 sm:p-6 transition-colors">
+                <div className="mx-auto max-w-7xl">
+                    {/* Page header bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-sm bg-blue-700 text-white shrink-0">
+                                <FiHome className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                                    Administration &nbsp;›&nbsp; Branches
+                                </div>
+                                <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                                    Branch Master List
+                                </h1>
+                            </div>
                         </div>
-                        <select 
-                            value={status} 
-                            onChange={e => setStatus(e.target.value)}
-                            className="text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:text-slate-400"
-                        >
-                            <option value="">All Status</option>
-                            <option value="1">Active</option>
-                            <option value="0">Inactive</option>
-                            <option value="2">Suspended</option>
-                        </select>
-                        <button type="submit" className="px-4 py-2 bg-[#394e5a] hover:bg-[#2c3d47] text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">
-                            Filter
-                        </button>
-                    </form>
 
-                    <Link href={route('branches.create')} className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm">
-                        <FiPlus /> Add Branch
-                    </Link>
-                </div>
+                        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm px-3 py-2">
+                            <span className="text-slate-400 dark:text-slate-500">Total Records</span>
+                            <span className="text-slate-900 dark:text-white text-sm tabular-nums">{totalCount}</span>
+                        </div>
+                    </div>
 
-                {/* ক্লিন এবং রেসপনসিভ ইউজার স্ট্যান্ডার্ড টেবিল */}
-                <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800/60 shadow-inner">
-                    <table className="w-full text-left border-collapse text-sm">
-                        <thead className="bg-slate-50 dark:bg-slate-950/50 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-100 dark:border-slate-800">
-                            <tr>
-                                <th className="p-4 font-semibold">Branch Code</th>
-                                <th className="p-4 font-semibold">Branch Name</th>
-                                <th className="p-4 font-semibold">Phone</th>
-                                <th className="p-4 font-semibold">Email</th>
-                                <th className="p-4 font-semibold">Status</th>
-                                <th className="p-4 text-center font-semibold">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 dark:text-slate-300">
-                            {branches.data.length > 0 ? branches.data.map((branch) => (
-                                <tr key={branch.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40 transition-colors">
-                                    <td className="p-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">{branch.branch_code}</td>
-                                    <td className="p-4 font-medium text-slate-900 dark:text-slate-200">{branch.name}</td>
-                                    <td className="p-4 text-slate-500 dark:text-slate-400">{branch.phone || '—'}</td>
-                                    <td className="p-4 text-slate-500 dark:text-slate-400">{branch.email || '—'}</td>
-                                    <td className="p-4">{getStatusBadge(branch.status)}</td>
-                                    <td className="p-4">
-                                        <div className="flex justify-center gap-1.5">
-                                            <Link 
-                                                href={route('branches.edit', branch.id)} 
-                                                className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-all"
-                                                title="Edit"
+                    {/* Main panel */}
+                    <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm shadow-sm">
+                        {/* Toolbar */}
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+                            <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                                <div className="relative flex-1 md:w-64">
+                                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+                                    <input
+                                        type="text"
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        placeholder="Search code or name…"
+                                        className="w-full pl-9 pr-8 py-2 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-200 placeholder-slate-400 transition-colors"
+                                    />
+                                    {search && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSearch('')}
+                                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                            title="Clear search"
+                                        >
+                                            <FiX className="h-4 w-4" />
+                                        </button>
+                                    )}
+                                </div>
+                                <select
+                                    value={status}
+                                    onChange={(e) => setStatus(e.target.value)}
+                                    className="text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm py-2 px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-300"
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="1">Active</option>
+                                    <option value="0">Inactive</option>
+                                    <option value="2">Suspended</option>
+                                </select>
+                                <button
+                                    type="submit"
+                                    className="px-3.5 py-2 text-xs font-semibold text-white bg-slate-700 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-sm transition-colors"
+                                >
+                                    Filter
+                                </button>
+                            </form>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={exportCsv}
+                                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40"
+                                    title="Export current page as CSV"
+                                >
+                                    <FiDownload className="h-3.5 w-3.5" />
+                                    Export CSV
+                                </button>
+                                <Link
+                                    href={route('branches.create')}
+                                    className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/50"
+                                >
+                                    <FiPlus className="h-3.5 w-3.5" />
+                                    Add Branch
+                                </Link>
+                            </div>
+                        </div>
+
+                        {/* Bulk action bar */}
+                        {selectedIds.length > 0 && (
+                            <div className="flex items-center justify-between px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 border-b border-blue-200 dark:border-blue-500/20">
+                                <span className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                                    {selectedIds.length} selected
+                                </span>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedIds([])}
+                                        className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                                    >
+                                        Clear
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleBulkDelete}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-sm transition-colors"
+                                    >
+                                        <FiTrash2 className="h-3.5 w-3.5" />
+                                        Delete Selected
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Data grid */}
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm border-collapse whitespace-nowrap">
+                                <thead className="text-[11px] text-slate-600 dark:text-slate-400 uppercase tracking-wide font-bold bg-slate-100 dark:bg-slate-800/60 border-b-2 border-slate-300 dark:border-slate-700">
+                                    <tr>
+                                        <th className="w-10 px-4 py-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={allOnPageSelected}
+                                                onChange={toggleAll}
+                                                className="h-3.5 w-3.5 accent-blue-700 cursor-pointer"
+                                                aria-label="Select all on this page"
+                                            />
+                                        </th>
+                                        <th className="px-4 py-3 border-l border-slate-200 dark:border-slate-700">Branch Code</th>
+                                        <th className="px-4 py-3 border-l border-slate-200 dark:border-slate-700">Branch Name</th>
+                                        <th className="px-4 py-3 border-l border-slate-200 dark:border-slate-700">Phone</th>
+                                        <th className="px-4 py-3 border-l border-slate-200 dark:border-slate-700">Email</th>
+                                        <th className="px-4 py-3 border-l border-slate-200 dark:border-slate-700">Status</th>
+                                        <th className="px-4 py-3 border-l border-slate-200 dark:border-slate-700 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                                    {branches.data.length > 0 ? (
+                                        branches.data.map((branch, idx) => {
+                                            const checked = selectedIds.includes(branch.id);
+                                            const st = STATUS[branch.status] || STATUS[0];
+                                            return (
+                                                <tr
+                                                    key={branch.id}
+                                                    className={`transition-colors ${
+                                                        checked
+                                                            ? 'bg-blue-50/70 dark:bg-blue-500/10'
+                                                            : idx % 2 === 1
+                                                            ? 'bg-slate-50/60 dark:bg-slate-900/30'
+                                                            : 'bg-white dark:bg-slate-900'
+                                                    } hover:bg-blue-50/50 dark:hover:bg-blue-500/5`}
+                                                >
+                                                    <td className="px-4 py-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={() => toggleOne(branch.id)}
+                                                            className="h-3.5 w-3.5 accent-blue-700 cursor-pointer"
+                                                            aria-label={`Select ${branch.name}`}
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3 border-l border-slate-100 dark:border-slate-800 font-mono font-bold text-blue-700 dark:text-blue-400 text-[13px]">
+                                                        {branch.branch_code}
+                                                    </td>
+                                                    <td className="px-4 py-3 border-l border-slate-100 dark:border-slate-800 font-semibold text-slate-900 dark:text-slate-200 text-[13px]">
+                                                        {branch.name}
+                                                    </td>
+                                                    <td className="px-4 py-3 border-l border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-[13px]">
+                                                        {branch.phone || '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3 border-l border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-[13px]">
+                                                        {branch.email || '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3 border-l border-slate-100 dark:border-slate-800">
+                                                        <span
+                                                            className={`inline-flex items-center px-2 py-1 text-[10px] font-bold uppercase tracking-wide rounded-sm ${st.classes}`}
+                                                        >
+                                                            {st.label}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 border-l border-slate-100 dark:border-slate-800 text-right">
+                                                        <div className="flex justify-end items-center gap-1">
+                                                            <Link
+                                                                href={route('branches.edit', branch.id)}
+                                                                className="p-1.5 text-slate-500 hover:text-blue-700 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-sm transition-colors"
+                                                                title="Edit"
+                                                            >
+                                                                <FiEdit className="w-4 h-4" />
+                                                            </Link>
+                                                            <button
+                                                                onClick={() => handleDelete(branch.id)}
+                                                                className="p-1.5 text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-sm transition-colors"
+                                                                title="Delete"
+                                                            >
+                                                                <FiTrash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="7" className="px-6 py-20">
+                                                <div className="flex flex-col items-center justify-center gap-3 text-center">
+                                                    <div className="flex h-11 w-11 items-center justify-center rounded-sm bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500">
+                                                        <FiInbox className="h-5 w-5" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold text-slate-600 dark:text-slate-300 text-sm">
+                                                            No branches found
+                                                        </p>
+                                                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                                                            Try a different search term or status filter.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Pagination */}
+                        {hasPagination && (
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
+                                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                                    Showing <span className="text-slate-800 dark:text-slate-200">{branches.from || 0}</span>–
+                                    <span className="text-slate-800 dark:text-slate-200">{branches.to || 0}</span> of{' '}
+                                    <span className="text-slate-800 dark:text-slate-200">{branches.total}</span> entries
+                                    {currentPage && lastPage && (
+                                        <span className="text-slate-400 dark:text-slate-500"> &nbsp;·&nbsp; Page {currentPage} of {lastPage}</span>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center gap-1">
+                                    {branches.links.map((link, index) => {
+                                        const isPrevious = link.label.includes('Previous');
+                                        const isNext = link.label.includes('Next');
+
+                                        return (
+                                            <button
+                                                key={index}
+                                                disabled={!link.url}
+                                                onClick={() =>
+                                                    router.get(
+                                                        link.url,
+                                                        { search, status },
+                                                        { preserveState: true, preserveScroll: true },
+                                                    )
+                                                }
+                                                className={`min-w-[30px] h-7 px-2 flex items-center justify-center text-xs font-semibold rounded-sm border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 ${
+                                                    link.active
+                                                        ? 'bg-blue-700 text-white border-blue-700'
+                                                        : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                                } ${!link.url ? 'opacity-40 cursor-not-allowed hover:bg-white dark:hover:bg-slate-950' : ''}`}
                                             >
-                                                <FiEdit className="w-4 h-4" />
-                                            </Link>
-                                            <button 
-                                                onClick={() => handleDelete(branch.id)} 
-                                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-all"
-                                                title="Delete"
-                                            >
-                                                <FiTrash2 className="w-4 h-4" />
+                                                {isPrevious ? (
+                                                    <FiChevronLeft className="h-3.5 w-3.5" />
+                                                ) : isNext ? (
+                                                    <FiChevronRight className="h-3.5 w-3.5" />
+                                                ) : (
+                                                    <span dangerouslySetInnerHTML={{ __html: link.label }} />
+                                                )}
                                             </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr>
-                                    <td colSpan="6" className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium">
-                                        No branches found.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </AuthenticatedLayout>

@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,15 +30,32 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        
+        // Dynamic field inputs matching and assignment processing
+        $user->fill($request->validated());
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        // Handle profile photo context storage rules safely 
+        if ($request->hasFile('photo')) {
+            // Delete old binary image asset context file safely inside storage allocations
+            if ($user->photo && Storage::disk('public')->exists(str_replace('/storage/', '', $user->photo))) {
+                Storage::disk('public')->delete(str_replace('/storage/', '', $user->photo));
+            }
 
-        return Redirect::route('profile.edit');
+            // Storage area validation check path stream parameters configuration mapping direct
+            $path = $request->file('photo')->store('profile-photos', 'public');
+            
+            // Sync database structure field attributes directly
+            $user->photo = '/storage/' . $path;
+        }
+
+        $user->save();
+
+        return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
     /**
@@ -50,6 +68,14 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        // Clear assets from filesystem context bounds completely before database destruction
+        if ($user->photo) {
+            $cleanPath = str_replace('/storage/', '', $user->photo);
+            if (Storage::disk('public')->exists($cleanPath)) {
+                Storage::disk('public')->delete($cleanPath);
+            }
+        }
 
         Auth::logout();
 

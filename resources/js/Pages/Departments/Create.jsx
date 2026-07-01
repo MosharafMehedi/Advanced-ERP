@@ -24,7 +24,7 @@ export default function Create({ branches, users }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label className="block text-sm font-semibold mb-2">Department Code *</label>
-                        <input type="text" value={data.department_code} onChange={e => setData('department_code', e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl uppercase" placeholder="e.g., IT-DHK" />
+                        <input type="text" value={data.department_code} onChange={e => setData('department_code', e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl" placeholder="e.g., IT-DHK" />
                         {errors.department_code && <div className="text-rose-500 text-xs mt-1">{errors.department_code}</div>}
                     </div>
 

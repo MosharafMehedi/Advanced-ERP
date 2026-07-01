@@ -20,6 +20,7 @@ return new class extends Migration
             $table->unsignedBigInteger('role_id')->nullable();
             $table->unsignedBigInteger('branch_id')->nullable();
             $table->unsignedBigInteger('department_id')->nullable();
+            $table->string('photo')->nullable();
             $table->tinyInteger('status')->default(1)->comment('0=inactive, 1=active, 2=suspended')->index();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
