@@ -1,10 +1,18 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
-import { 
-    FiArrowLeft, FiSave, FiUser, FiMail, FiPhone, 
-    FiBriefcase, FiLayers, FiMapPin, FiShield, FiLock 
+import {
+    FiArrowLeft, FiSave, FiUser, FiMail, FiPhone,
+    FiBriefcase, FiLayers, FiMapPin, FiShield, FiLock, FiUserPlus
 } from 'react-icons/fi';
 import Swal from 'sweetalert2';
+
+function swalTheme() {
+    const isDark = document.documentElement.classList.contains('dark');
+    return {
+        background: isDark ? '#0f172a' : '#ffffff',
+        color: isDark ? '#f1f5f9' : '#0f172a',
+    };
+}
 
 export default function Create({ roles, departments, branches }) {
     const { data, setData, post, errors, processing } = useForm({
@@ -22,14 +30,15 @@ export default function Create({ roles, departments, branches }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
+
         post(route('users.store'), {
             onSuccess: () => {
                 Swal.fire({
                     title: 'Success!',
                     text: 'User account created successfully.',
                     icon: 'success',
-                    confirmButtonColor: '#4f46e5',
+                    confirmButtonColor: '#1d4ed8',
+                    ...swalTheme(),
                 });
             },
             onError: () => {
@@ -37,42 +46,68 @@ export default function Create({ roles, departments, branches }) {
                     title: 'Error!',
                     text: 'Please fix the validation errors in the form.',
                     icon: 'error',
-                    confirmButtonColor: '#ef4444',
+                    confirmButtonColor: '#1d4ed8',
+                    ...swalTheme(),
                 });
             }
         });
     };
 
-    // Form input control styles with icons space
-    const inputWrapperStyle = "relative mt-1";
-    const iconStyle = "absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 h-4 w-4 pointer-events-none";
-    const inputStyle = "block w-full pl-10 pr-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm";
+    // Shared field styles — rectangular, formal, matching the rest of the module.
+    const inputWrapperStyle = "relative mt-1.5";
+    const iconStyle = "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 h-4 w-4 pointer-events-none";
+    const inputStyle = "block w-full pl-10 pr-3 py-2.5 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-200 transition-colors";
+    const labelStyle = "block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400";
+    const errorStyle = "text-red-600 dark:text-red-400 text-xs mt-1 font-medium";
+
+    const SectionHeader = ({ children }) => (
+        <div className="px-5 py-3.5 border-b-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60">
+            <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                {children}
+            </h3>
+        </div>
+    );
 
     return (
         <AuthenticatedLayout
-            header={<h2 className="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Create User</h2>}
+            header={<h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">User Management</h2>}
         >
             <Head title="Create User" />
 
-            <div>
-                <div className="max-w-7xl mx-auto">
-                    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">User Information</h3>
-                            <Link
-                                href={route('users.index')}
-                                className="inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm transition-colors"
-                            >
-                                <FiArrowLeft /> Back
-                            </Link>
+            <div className="min-h-full bg-slate-100 dark:bg-slate-950 -m-4 sm:-m-6 p-4 sm:p-6 transition-colors">
+                <div className="mx-auto max-w-5xl">
+                    {/* Page header bar */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-sm bg-blue-700 text-white shrink-0">
+                                <FiUserPlus className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                                    Administration &nbsp;›&nbsp; Users &nbsp;›&nbsp; Create
+                                </div>
+                                <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                                    Create New User
+                                </h1>
+                            </div>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                
-                                {/* Name */}
+                        <Link
+                            href={route('users.index')}
+                            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40"
+                        >
+                            <FiArrowLeft className="h-3.5 w-3.5" />
+                            Back to List
+                        </Link>
+                    </div>
+
+                    <form onSubmit={handleSubmit} autoComplete="off">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm shadow-sm">
+                            {/* Section: Personal Information */}
+                            <SectionHeader>Personal Information</SectionHeader>
+                            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 border-b border-slate-200 dark:border-slate-800">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name *</label>
+                                    <label className={labelStyle}>Name *</label>
                                     <div className={inputWrapperStyle}>
                                         <FiUser className={iconStyle} />
                                         <input
@@ -81,15 +116,14 @@ export default function Create({ roles, departments, branches }) {
                                             onChange={e => setData('name', e.target.value)}
                                             className={inputStyle}
                                             placeholder="Enter full name"
-                                            required // 👈 Added
+                                            required
                                         />
                                     </div>
-                                    {errors.name && <div className="text-red-500 text-xs mt-1">{errors.name}</div>}
+                                    {errors.name && <div className={errorStyle}>{errors.name}</div>}
                                 </div>
 
-                                {/* Email */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email *</label>
+                                    <label className={labelStyle}>Email *</label>
                                     <div className={inputWrapperStyle}>
                                         <FiMail className={iconStyle} />
                                         <input
@@ -99,15 +133,14 @@ export default function Create({ roles, departments, branches }) {
                                             className={inputStyle}
                                             placeholder="example@domain.com"
                                             autoComplete="none"
-                                            required // 👈 Added
+                                            required
                                         />
                                     </div>
-                                    {errors.email && <div className="text-red-500 text-xs mt-1">{errors.email}</div>}
+                                    {errors.email && <div className={errorStyle}>{errors.email}</div>}
                                 </div>
 
-                                {/* Phone */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone *</label>
+                                    <label className={labelStyle}>Phone *</label>
                                     <div className={inputWrapperStyle}>
                                         <FiPhone className={iconStyle} />
                                         <input
@@ -116,15 +149,14 @@ export default function Create({ roles, departments, branches }) {
                                             onChange={e => setData('phone', e.target.value)}
                                             className={inputStyle}
                                             placeholder="+880 1XXXXXXXXX"
-                                            required // 👈 Added
+                                            required
                                         />
                                     </div>
-                                    {errors.phone && <div className="text-red-500 text-xs mt-1">{errors.phone}</div>}
+                                    {errors.phone && <div className={errorStyle}>{errors.phone}</div>}
                                 </div>
 
-                                {/* Employee ID */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Employee ID *</label>
+                                    <label className={labelStyle}>Employee ID *</label>
                                     <div className={inputWrapperStyle}>
                                         <FiBriefcase className={iconStyle} />
                                         <input
@@ -133,15 +165,18 @@ export default function Create({ roles, departments, branches }) {
                                             onChange={e => setData('employee_id', e.target.value)}
                                             className={inputStyle}
                                             placeholder="e.g. MS-102"
-                                            required // 👈 Added
+                                            required
                                         />
                                     </div>
-                                    {errors.employee_id && <div className="text-red-500 text-xs mt-1">{errors.employee_id}</div>}
+                                    {errors.employee_id && <div className={errorStyle}>{errors.employee_id}</div>}
                                 </div>
+                            </div>
 
-                                {/* Designation */}
+                            {/* Section: Organizational Assignment */}
+                            <SectionHeader>Organizational Assignment</SectionHeader>
+                            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 border-b border-slate-200 dark:border-slate-800">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Designation *</label>
+                                    <label className={labelStyle}>Designation *</label>
                                     <div className={inputWrapperStyle}>
                                         <FiLayers className={iconStyle} />
                                         <input
@@ -150,22 +185,21 @@ export default function Create({ roles, departments, branches }) {
                                             onChange={e => setData('designation', e.target.value)}
                                             className={inputStyle}
                                             placeholder="Software Engineer"
-                                            required // 👈 Added
+                                            required
                                         />
                                     </div>
-                                    {errors.designation && <div className="text-red-500 text-xs mt-1">{errors.designation}</div>}
+                                    {errors.designation && <div className={errorStyle}>{errors.designation}</div>}
                                 </div>
 
-                                {/* Department */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Department *</label>
+                                    <label className={labelStyle}>Department *</label>
                                     <div className={inputWrapperStyle}>
                                         <FiLayers className={iconStyle} />
                                         <select
                                             value={data.department_id}
                                             onChange={e => setData('department_id', e.target.value)}
                                             className={`${inputStyle} cursor-pointer`}
-                                            required // 👈 Added
+                                            required
                                         >
                                             <option value="">Select Department</option>
                                             {departments && departments.map((dept) => (
@@ -173,19 +207,18 @@ export default function Create({ roles, departments, branches }) {
                                             ))}
                                         </select>
                                     </div>
-                                    {errors.department_id && <div className="text-red-500 text-xs mt-1">{errors.department_id}</div>}
+                                    {errors.department_id && <div className={errorStyle}>{errors.department_id}</div>}
                                 </div>
 
-                                {/* Branch */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Branch *</label>
+                                    <label className={labelStyle}>Branch *</label>
                                     <div className={inputWrapperStyle}>
                                         <FiMapPin className={iconStyle} />
                                         <select
                                             value={data.branch_id}
                                             onChange={e => setData('branch_id', e.target.value)}
                                             className={`${inputStyle} cursor-pointer`}
-                                            required // 👈 Added
+                                            required
                                         >
                                             <option value="">Select Branch</option>
                                             {branches && branches.map((branch) => (
@@ -193,19 +226,18 @@ export default function Create({ roles, departments, branches }) {
                                             ))}
                                         </select>
                                     </div>
-                                    {errors.branch_id && <div className="text-red-500 text-xs mt-1">{errors.branch_id}</div>}
+                                    {errors.branch_id && <div className={errorStyle}>{errors.branch_id}</div>}
                                 </div>
 
-                                {/* Role */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Role *</label>
+                                    <label className={labelStyle}>Role *</label>
                                     <div className={inputWrapperStyle}>
                                         <FiShield className={iconStyle} />
                                         <select
                                             value={data.role_id}
                                             onChange={e => setData('role_id', e.target.value)}
                                             className={`${inputStyle} cursor-pointer`}
-                                            required // 👈 Added
+                                            required
                                         >
                                             <option value="">Select Role</option>
                                             {roles && roles.map((role) => (
@@ -213,12 +245,15 @@ export default function Create({ roles, departments, branches }) {
                                             ))}
                                         </select>
                                     </div>
-                                    {errors.role_id && <div className="text-red-500 text-xs mt-1">{errors.role_id}</div>}
+                                    {errors.role_id && <div className={errorStyle}>{errors.role_id}</div>}
                                 </div>
+                            </div>
 
-                                {/* Password */}
+                            {/* Section: Account Security */}
+                            <SectionHeader>Account Security</SectionHeader>
+                            <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password *</label>
+                                    <label className={labelStyle}>Password *</label>
                                     <div className={inputWrapperStyle}>
                                         <FiLock className={iconStyle} />
                                         <input
@@ -226,15 +261,14 @@ export default function Create({ roles, departments, branches }) {
                                             value={data.password}
                                             onChange={e => setData('password', e.target.value)}
                                             className={inputStyle}
-                                            required // 👈 Added
+                                            required
                                         />
                                     </div>
-                                    {errors.password && <div className="text-red-500 text-xs mt-1">{errors.password}</div>}
+                                    {errors.password && <div className={errorStyle}>{errors.password}</div>}
                                 </div>
 
-                                {/* Confirm Password */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm Password *</label>
+                                    <label className={labelStyle}>Confirm Password *</label>
                                     <div className={inputWrapperStyle}>
                                         <FiLock className={iconStyle} />
                                         <input
@@ -242,23 +276,25 @@ export default function Create({ roles, departments, branches }) {
                                             value={data.password_confirmation}
                                             onChange={e => setData('password_confirmation', e.target.value)}
                                             className={inputStyle}
-                                            required // 👈 Added
+                                            required
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex justify-end mt-6">
+                            {/* Submit */}
+                            <div className="px-5 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 flex justify-end">
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded disabled:opacity-50 transition-colors shadow-sm"
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <FiSave /> {processing ? 'Saving...' : 'Save'}
+                                    <FiSave className="h-4 w-4" />
+                                    {processing ? 'Saving...' : 'Save'}
                                 </button>
                             </div>
-                        </form>
-                    </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </AuthenticatedLayout>
