@@ -1,4 +1,3 @@
-// 💡 এখানে 'usePage' ইম্পোর্ট করা হয়েছে
 import { Link, usePage } from '@inertiajs/react'; 
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
