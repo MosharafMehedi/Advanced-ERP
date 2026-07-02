@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Role;          
+use App\Models\Department;    
+use App\Models\Branch;      
+use App\Models\Designation;   
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rules;
@@ -40,9 +44,10 @@ class UserController extends Controller
     public function create()
     {
         return Inertia::render('Users/Create', [
-            'roles' => ['Admin', 'Manager', 'Operator'], 
-            'departments' => ['IT', 'HR', 'Remittance', 'Accounts'],
-            'branches' => ['Dhaka Main Branch', 'Chittagong Branch', 'Sylhet Branch']
+            'roles' => Role::select('id', 'name')->get(),
+            'departments' => Department::select('id', 'name')->get(),
+            'branches' => Branch::select('id', 'name')->get(),
+            'designations' => Designation::select('id', 'title')->get(),
         ]);
     }
 
@@ -53,10 +58,10 @@ class UserController extends Controller
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'phone' => 'required|string|max:20',
             'employee_id' => 'required|string|max:50|unique:users,employee_id',
-            'department' => 'required|string',
-            'branch' => 'required|string',
-            'role' => 'required|string',
-            'designation' => 'required|string',
+            'department_id' => 'required|integer', 
+            'branch_id' => 'required|integer',
+            'role_id' => 'required|integer',
+            'designation_id' => 'required|integer', 
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -65,10 +70,10 @@ class UserController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'employee_id' => $request->employee_id,
-            'department' => $request->department,
-            'branch' => $request->branch,
-            'role' => $request->role,
-            'designation' => $request->designation,
+            'department_id' => $request->department_id,
+            'branch_id' => $request->branch_id,
+            'role_id' => $request->role_id,
+            'designation_id' => $request->designation_id,
             'password' => Hash::make($request->password),
         ]);
 
@@ -79,9 +84,10 @@ class UserController extends Controller
     {
         return Inertia::render('Users/Edit', [
             'user' => $user,
-            'roles' => ['Admin', 'Manager', 'Operator'],
-            'departments' => ['IT', 'HR', 'Remittance', 'Accounts'],
-            'branches' => ['Dhaka Main Branch', 'Chittagong Branch', 'Sylhet Branch']
+            'roles' => Role::select('id', 'name')->get(),
+            'departments' => Department::select('id', 'name')->get(),
+            'branches' => Branch::select('id', 'name')->get(),
+            'designations' => Designation::select('id', 'title')->get(),
         ]);
     }
 
@@ -92,14 +98,23 @@ class UserController extends Controller
             'email' => 'required|string|lowercase|email|max:255|unique:users,email,'.$user->id,
             'phone' => 'required|string|max:20',
             'employee_id' => 'required|string|max:50|unique:users,employee_id,'.$user->id,
-            'department' => 'required|string',
-            'branch' => 'required|string',
-            'role' => 'required|string',
-            'designation' => 'required|string',
+            'department_id' => 'required|integer',
+            'branch_id' => 'required|integer',
+            'role_id' => 'required|integer',
+            'designation_id' => 'required|integer',
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $user->update($request->except(['password', 'password_confirmation']));
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'employee_id' => $request->employee_id,
+            'department_id' => $request->department_id,
+            'branch_id' => $request->branch_id,
+            'role_id' => $request->role_id,
+            'designation_id' => $request->designation_id,
+        ]);
 
         if ($request->filled('password')) {
             $user->update(['password' => Hash::make($request->password)]);

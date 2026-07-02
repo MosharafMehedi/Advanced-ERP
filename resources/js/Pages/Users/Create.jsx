@@ -14,7 +14,15 @@ function swalTheme() {
     };
 }
 
-export default function Create({ roles, departments, branches }) {
+// কন্ট্রোলার থেকে designations না আসলে এই ডিফল্ট লিস্টটি কাজ করবে
+const DEFAULT_DESIGNATIONS = [
+    { id: 'Software Engineer', name: 'Software Engineer' },
+    { id: 'Project Manager', name: 'Project Manager' },
+    { id: 'HR Manager', name: 'HR Manager' },
+    { id: 'Accountant', name: 'Accountant' }
+];
+
+export default function Create({ roles = [], departments = [], branches = [], designations = [] }) {
     const { data, setData, post, errors, processing } = useForm({
         name: '',
         email: '',
@@ -53,7 +61,7 @@ export default function Create({ roles, departments, branches }) {
         });
     };
 
-    // Shared field styles — rectangular, formal, matching the rest of the module.
+    // Shared field styles
     const inputWrapperStyle = "relative mt-1.5";
     const iconStyle = "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 h-4 w-4 pointer-events-none";
     const inputStyle = "block w-full pl-10 pr-3 py-2.5 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-200 transition-colors";
@@ -67,6 +75,9 @@ export default function Create({ roles, departments, branches }) {
             </h3>
         </div>
     );
+
+    // যদি কন্ট্রোলার থেকে designations অ্যারে আসে সেটা ব্যবহার হবে, না হলে ডিফল্ট অ্যারে দেখাবে
+    const designationList = designations.length > 0 ? designations : DEFAULT_DESIGNATIONS;
 
     return (
         <AuthenticatedLayout
@@ -175,18 +186,23 @@ export default function Create({ roles, departments, branches }) {
                             {/* Section: Organizational Assignment */}
                             <SectionHeader>Organizational Assignment</SectionHeader>
                             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 border-b border-slate-200 dark:border-slate-800">
+                                
+                                {/* Designation Dropdown*/}
                                 <div>
                                     <label className={labelStyle}>Designation *</label>
                                     <div className={inputWrapperStyle}>
                                         <FiLayers className={iconStyle} />
-                                        <input
-                                            type="text"
+                                        <select
                                             value={data.designation}
                                             onChange={e => setData('designation', e.target.value)}
-                                            className={inputStyle}
-                                            placeholder="Software Engineer"
+                                            className={`${inputStyle} cursor-pointer`}
                                             required
-                                        />
+                                        >
+                                            <option value="">Select Designation</option>
+                                            {designationList.map((desig) => (
+                                                <option key={desig.id} value={desig.id}>{desig.title}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     {errors.designation && <div className={errorStyle}>{errors.designation}</div>}
                                 </div>
@@ -202,7 +218,7 @@ export default function Create({ roles, departments, branches }) {
                                             required
                                         >
                                             <option value="">Select Department</option>
-                                            {departments && departments.map((dept) => (
+                                            {departments.map((dept) => (
                                                 <option key={dept.id} value={dept.id}>{dept.name}</option>
                                             ))}
                                         </select>
@@ -221,7 +237,7 @@ export default function Create({ roles, departments, branches }) {
                                             required
                                         >
                                             <option value="">Select Branch</option>
-                                            {branches && branches.map((branch) => (
+                                            {branches.map((branch) => (
                                                 <option key={branch.id} value={branch.id}>{branch.name}</option>
                                             ))}
                                         </select>
@@ -240,7 +256,7 @@ export default function Create({ roles, departments, branches }) {
                                             required
                                         >
                                             <option value="">Select Role</option>
-                                            {roles && roles.map((role) => (
+                                            {roles.map((role) => (
                                                 <option key={role.id} value={role.id}>{role.name}</option>
                                             ))}
                                         </select>

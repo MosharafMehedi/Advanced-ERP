@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link,usePage } from "@inertiajs/react";
 import { FiGrid, FiUsers, FiX, FiChevronLeft,FiSettings,FiLayers,FiMapPin } from "react-icons/fi";
+import { HiOutlineIdentification } from "react-icons/hi2";
 
 export default function Sidebar({ showingSidebar, setShowingSidebar }) {
     const { globalSettings } = usePage().props;
@@ -39,6 +40,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                 { id: "settings", name: "Settings", route: "settings.index", activePrefix: "settings", icon: FiSettings, badge: null },
                 { id: "departments", name: "Departments", route: "departments.index", activePrefix: "departments", icon: FiLayers, badge: null },
                 { id: "branches", name: "Branches", route: "branches.index", activePrefix: "branches", icon: FiMapPin, badge: null },
+                { id: "designations", name: "Designations", route: "designations.index", activePrefix: "designations", icon: HiOutlineIdentification, badge: null },
 
             ],
         },

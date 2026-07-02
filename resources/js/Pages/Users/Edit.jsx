@@ -14,7 +14,10 @@ function swalTheme() {
     };
 }
 
-export default function Edit({ user, roles, departments, branches }) {
+// FIX 1: Added 'designations' to the received props
+export default function Edit({ user, roles, departments, branches, designations }) {
+    
+    // FIX 2: Changed 'designation' key to 'designation_id' to match your select markup
     const { data, setData, put, errors, processing } = useForm({
         name: user.name || '',
         email: user.email || '',
@@ -23,7 +26,7 @@ export default function Edit({ user, roles, departments, branches }) {
         department_id: user.department_id || '',
         branch_id: user.branch_id || '',
         role_id: user.role_id || '',
-        designation: user.designation || '',
+        designation_id: user.designation_id || '', // Fixed to match DB/Inertia convention
         password: '',
         password_confirmation: ''
     });
@@ -53,7 +56,7 @@ export default function Edit({ user, roles, departments, branches }) {
         });
     };
 
-    // Shared field styles — rectangular, formal, matching the rest of the module.
+    // Shared field styles
     const inputWrapperStyle = "relative mt-1.5";
     const iconStyle = "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 h-4 w-4 pointer-events-none";
     const inputStyle = "block w-full pl-10 pr-3 py-2.5 text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-200 transition-colors";
@@ -185,16 +188,19 @@ export default function Edit({ user, roles, departments, branches }) {
                                     <label className={labelStyle}>Designation *</label>
                                     <div className={inputWrapperStyle}>
                                         <FiLayers className={iconStyle} />
-                                        <input
-                                            type="text"
-                                            value={data.designation}
-                                            onChange={e => setData('designation', e.target.value)}
-                                            className={inputStyle}
-                                            placeholder="Software Engineer"
+                                        <select
+                                            value={data.designation_id}
+                                            onChange={e => setData('designation_id', e.target.value)}
+                                            className={`${inputStyle} cursor-pointer`}
                                             required
-                                        />
+                                        >
+                                            <option value="">Select Designation</option>
+                                            {designations && designations.map((desig) => (
+                                                <option key={desig.id} value={desig.id}>{desig.title}</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                    {errors.designation && <div className={errorStyle}>{errors.designation}</div>}
+                                    {errors.designation_id && <div className={errorStyle}>{errors.designation_id}</div>}
                                 </div>
 
                                 <div>
