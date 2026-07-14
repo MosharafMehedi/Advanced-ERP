@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -55,18 +56,18 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Store updated with Auto-User Creation Logic
+     * Store updated with Auto-User Creation Logic + Auto Employee ID Generation
      */
     public function store(Request $request)
     {
-        // ফ্রন্টএন্ডের চেকবক্স ট্রু/ফলস ফিল্টার করার জন্য রিকোয়েস্ট ফরম্যাট ফিক্সিং
+        // ফ্রন্টএন্ডের চেকবক্স ট্রু/ফলস ফিল্টার করার জন্য রিকোয়েস্ট ফরম্যাট ফিক্সিং
         $request->merge([
             'has_login_access' => filter_var($request->has_login_access, FILTER_VALIDATE_BOOLEAN),
         ]);
 
         $validated = $request->validate([
             // Personal Information
-            'employee_id'               => 'required|string|unique:employees,employee_id',
+            // employee_id এখন backend এ auto-generate হয়, তাই validation থেকে বাদ
             'first_name'                => 'required|string|max:100',
             'last_name'                 => 'nullable|string|max:100',
             'gender'                    => 'required|in:Male,Female,Other',
@@ -97,13 +98,13 @@ class EmployeeController extends Controller
             'confirmation_date'         => 'nullable|date',
             'termination_date'          => 'nullable|date',
             'status'                    => 'required|in:0,1,2,3',
-            
+
             // Financial & Credentials
             'has_login_access'          => 'required|boolean',
             'user_id'                   => 'nullable|exists:users,id|unique:employees,user_id',
             'basic_salary'              => 'nullable|numeric|min:0',
             'gross_salary'              => 'nullable|numeric|min:0',
-            
+
             // Files
             'profile_photo'             => 'nullable|image|max:2048',
             'nid_file'                  => 'nullable|mimes:jpeg,png,jpg,pdf|max:3072',
@@ -111,15 +112,15 @@ class EmployeeController extends Controller
         ]);
 
         $data = $validated;
-        $data['employee_id'] = strtoupper($validated['employee_id']);
+        $data['employee_id'] = $this->generateEmployeeId();
         $data['full_name'] = trim($request->first_name . ' ' . $request->last_name);
         $data['created_by'] = Auth::id();
 
-        // ১. অটো ইউজার ক্রিয়েশন লজিক (যদি login access ট্রু থাকে কিন্তু ইউজার আইডি না পাঠানো হয়)
+        // ১. অটো ইউজার ক্রিয়েশন লজিক (যদি login access ট্রু থাকে কিন্তু ইউজার আইডি না পাঠানো হয়)
         if ($data['has_login_access'] && empty($data['user_id'])) {
-            // ইমেইল না থাকলে Employee ID দিয়ে সিস্টেম ইমেইল জেনারেট হবে
+            // ইমেইল না থাকলে Employee ID দিয়ে সিস্টেম ইমেইল জেনারেট হবে
             $email = $request->email ?? strtolower($data['employee_id']) . '@company.com';
-            
+
             // ইউজার অলরেডি এক্সিস্ট করে কিনা চেক
             $existingUser = User::where('email', $email)->first();
             if ($existingUser) {
@@ -129,7 +130,7 @@ class EmployeeController extends Controller
             $newUser = User::create([
                 'name' => $data['full_name'],
                 'email' => $email,
-                'password' => Hash::make('12345678'), // ডিফল্ট পাসওয়ার্ড
+                'password' => Hash::make('12345678'), // ডিফল্ট পাসওয়ার্ড
             ]);
             $data['user_id'] = $newUser->id;
         }
@@ -165,7 +166,9 @@ class EmployeeController extends Controller
     }
 
     /**
-     * Update fixed with existing file persistence
+     * Update fixed with existing file persistence.
+     * employee_id ইচ্ছাকৃতভাবে immutable — একবার auto-generate হলে তা কখনো পরিবর্তন হবে না,
+     * কারণ payroll/attendance/অন্যান্য মডিউলে এটি রেফারেন্স আইডি হিসেবে ব্যবহৃত হয়।
      */
     public function update(Request $request, Employee $employee)
     {
@@ -174,7 +177,7 @@ class EmployeeController extends Controller
         ]);
 
         $validated = $request->validate([
-            'employee_id'               => 'required|string|unique:employees,employee_id,' . $employee->id,
+            // employee_id validation ইচ্ছাকৃতভাবে বাদ — এটি আপডেট করা যাবে না
             'first_name'                => 'required|string|max:100',
             'last_name'                 => 'nullable|string|max:100',
             'gender'                    => 'required|in:Male,Female,Other',
@@ -204,27 +207,27 @@ class EmployeeController extends Controller
             'confirmation_date'         => 'nullable|date',
             'termination_date'          => 'nullable|date',
             'status'                    => 'required|in:0,1,2,3',
-            
+
             'has_login_access'          => 'required|boolean',
             'user_id'                   => 'nullable|exists:users,id|unique:employees,user_id,' . $employee->id,
             'basic_salary'              => 'nullable|numeric|min:0',
             'gross_salary'              => 'nullable|numeric|min:0',
-            
+
             'profile_photo'             => 'nullable|image|max:2048',
             'nid_file'                  => 'nullable|mimes:jpeg,png,jpg,pdf|max:3072',
             'cv_file'                   => 'nullable|mimes:pdf,doc,docx|max:5120',
         ]);
 
         $data = $validated;
-        $data['employee_id'] = strtoupper($validated['employee_id']);
+        // employee_id ইচ্ছাকৃতভাবে $data তে সেট করা হচ্ছে না — DB এর বিদ্যমান মান অপরিবর্তিত থাকবে
         $data['full_name'] = trim($request->first_name . ' ' . $request->last_name);
         $data['updated_by'] = Auth::id();
 
         // আপডেট এ অটো ইউজার হ্যান্ডেলিং
         if ($data['has_login_access'] && empty($data['user_id'])) {
-            $email = $request->email ?? strtolower($data['employee_id']) . '@company.com';
+            $email = $request->email ?? strtolower($employee->employee_id) . '@company.com';
             $existingUser = User::where('email', $email)->first();
-            
+
             if (!$existingUser) {
                 $newUser = User::create([
                     'name' => $data['full_name'],
@@ -262,5 +265,32 @@ class EmployeeController extends Controller
     {
         $employee->delete();
         return redirect()->back();
+    }
+
+    /**
+     * Employee ID auto-generator.
+     * Pattern: EMP-{YEAR}-{3 digit sequence}  →  e.g. EMP-2026-001
+     * DB transaction + row lock দিয়ে race condition থেকে সুরক্ষিত,
+     * যাতে দুইজন একসাথে সাবমিট করলেও duplicate ID তৈরি না হয়।
+     */
+    private function generateEmployeeId(): string
+    {
+        $year = date('Y');
+        $prefix = "EMP-{$year}-";
+
+        return DB::transaction(function () use ($prefix) {
+            $lastEmployee = Employee::where('employee_id', 'like', "{$prefix}%")
+                ->lockForUpdate()
+                ->orderByRaw('CAST(SUBSTRING(employee_id, -3) AS UNSIGNED) DESC')
+                ->first();
+
+            $nextNumber = 1;
+            if ($lastEmployee) {
+                $lastNumber = (int) substr($lastEmployee->employee_id, -3);
+                $nextNumber = $lastNumber + 1;
+            }
+
+            return $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        });
     }
 }

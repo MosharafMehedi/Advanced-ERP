@@ -2,10 +2,29 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, Link } from '@inertiajs/react';
 import { FiSave, FiX, FiUploadCloud, FiArrowLeft, FiUserPlus } from 'react-icons/fi';
 
+const inputStyle = "w-full text-sm px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-200 transition-colors";
+const compactInputStyle = "w-full text-sm px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-200 transition-colors";
+const labelStyle = "block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1.5";
+const compactLabelStyle = "block text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1";
+const errorStyle = "text-red-600 dark:text-red-400 text-xs mt-1 font-medium";
+
+const Panel = ({ children }) => (
+    <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm shadow-sm">
+        {children}
+    </div>
+);
+
+const PanelHeader = ({ children }) => (
+    <div className="px-5 py-3.5 border-b-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60">
+        <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+            {children}
+        </h3>
+    </div>
+);
+
 export default function Create({ branches, departments, designations, managers, users }) {
     const { data, setData, post, processing, errors } = useForm({
         // Personal Information
-        employee_id: '',
         first_name: '',
         last_name: '',
         profile_photo: null,
@@ -54,27 +73,6 @@ export default function Create({ branches, departments, designations, managers, 
         });
     };
 
-    // Shared field styles — rectangular, formal, matching the rest of the module.
-    const inputStyle = "w-full text-sm px-3.5 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-200 transition-colors";
-    const compactInputStyle = "w-full text-sm px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-200 transition-colors";
-    const labelStyle = "block text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1.5";
-    const compactLabelStyle = "block text-[10px] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-1";
-    const errorStyle = "text-red-600 dark:text-red-400 text-xs mt-1 font-medium";
-
-    const Panel = ({ children }) => (
-        <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm shadow-sm">
-            {children}
-        </div>
-    );
-
-    const PanelHeader = ({ children }) => (
-        <div className="px-5 py-3.5 border-b-2 border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60">
-            <h3 className="text-[11px] font-bold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                {children}
-            </h3>
-        </div>
-    );
-
     return (
         <AuthenticatedLayout
             header={<h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Employee Management</h2>}
@@ -117,38 +115,52 @@ export default function Create({ branches, departments, designations, managers, 
                                     <PanelHeader>1. Personal Information</PanelHeader>
                                     <div className="p-5 space-y-4">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {/* First & Last Name — সবার উপরে */}
                                             <div>
-                                                <label className={labelStyle}>Employee ID (Auto/Manual) *</label>
+                                                <label className={labelStyle}>First Name *</label>
                                                 <input
                                                     type="text"
-                                                    value={data.employee_id}
-                                                    onChange={e => setData('employee_id', e.target.value.toUpperCase())}
-                                                    placeholder="e.g. EMP-2026-001"
-                                                    className={`${inputStyle} font-mono uppercase`}
+                                                    required
+                                                    value={data.first_name}
+                                                    onChange={e => setData('first_name', e.target.value)}
+                                                    className={inputStyle}
                                                 />
-                                                {errors.employee_id && <div className={errorStyle}>{errors.employee_id}</div>}
+                                                {errors.first_name && <div className={errorStyle}>{errors.first_name}</div>}
+                                            </div>
+
+                                            <div>
+                                                <label className={labelStyle}>Last Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={data.last_name}
+                                                    onChange={e => setData('last_name', e.target.value)}
+                                                    className={inputStyle}
+                                                />
+                                            </div>
+
+                                            {/* Employee ID — Auto-generated, read-only */}
+                                            <div>
+                                                <label className={labelStyle}>Employee ID (Auto-Generated)</label>
+                                                <input
+                                                    type="text"
+                                                    value="Will be generated automatically"
+                                                    disabled
+                                                    readOnly
+                                                    className={`${inputStyle} font-mono uppercase bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed`}
+                                                />
+                                                <p className="text-[10px] text-slate-400 mt-1">
+                                                </p>
                                             </div>
 
                                             <div>
                                                 <label className={labelStyle}>Gender *</label>
-                                                <select value={data.gender} onChange={e => setData('gender', e.target.value)} className={`${inputStyle} cursor-pointer`}>
+                                                <select required value={data.gender} onChange={e => setData('gender', e.target.value)} className={`${inputStyle} cursor-pointer`}>
                                                     <option value="">Select Gender</option>
                                                     <option value="Male">Male</option>
                                                     <option value="Female">Female</option>
                                                     <option value="Other">Other</option>
                                                 </select>
                                                 {errors.gender && <div className={errorStyle}>{errors.gender}</div>}
-                                            </div>
-
-                                            <div>
-                                                <label className={labelStyle}>First Name *</label>
-                                                <input type="text" value={data.first_name} onChange={e => setData('first_name', e.target.value)} className={inputStyle} />
-                                                {errors.first_name && <div className={errorStyle}>{errors.first_name}</div>}
-                                            </div>
-
-                                            <div>
-                                                <label className={labelStyle}>Last Name</label>
-                                                <input type="text" value={data.last_name} onChange={e => setData('last_name', e.target.value)} className={inputStyle} />
                                             </div>
 
                                             <div>
@@ -202,7 +214,7 @@ export default function Create({ branches, departments, designations, managers, 
 
                                             <div>
                                                 <label className={labelStyle}>Email Address</label>
-                                                <input type="email" value={data.email} onChange={e => setData('email', e.target.value)} className={inputStyle} />
+                                                <input type="email" required value={data.email} onChange={e => setData('email', e.target.value)} className={inputStyle} />
                                                 {errors.email && <div className={errorStyle}>{errors.email}</div>}
                                             </div>
 
@@ -303,7 +315,7 @@ export default function Create({ branches, departments, designations, managers, 
 
                                         <div>
                                             <label className={labelStyle}>Employment Type *</label>
-                                            <select value={data.employment_type} onChange={e => setData('employment_type', e.target.value)} className={`${inputStyle} cursor-pointer`}>
+                                            <select required value={data.employment_type} onChange={e => setData('employment_type', e.target.value)} className={`${inputStyle} cursor-pointer`}>
                                                 <option value="Permanent">Permanent</option>
                                                 <option value="Contract">Contract</option>
                                                 <option value="Intern">Intern</option>
