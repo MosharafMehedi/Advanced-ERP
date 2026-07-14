@@ -41,6 +41,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                 { id: "departments", name: "Departments", route: "departments.index", activePrefix: "departments", icon: FiLayers, badge: null },
                 { id: "branches", name: "Branches", route: "branches.index", activePrefix: "branches", icon: FiMapPin, badge: null },
                 { id: "designations", name: "Designations", route: "designations.index", activePrefix: "designations", icon: HiOutlineIdentification, badge: null },
+                { id: "employees", name: "Employees", route: "employees.index", activePrefix: "employees", icon: FiUsers, badge: null },
 
             ],
         },
