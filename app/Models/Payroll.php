@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Payroll extends Model
 {
@@ -48,6 +47,23 @@ class Payroll extends Model
         'total_deductions' => 'decimal:2',
         'net_payable' => 'decimal:2',
     ];
+
+    /**
+     * Auto-generate sequential salary slip number on creating
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->salary_slip_no)) {
+                // এটি একটি চমৎকার সিকোয়েন্সিয়াল ফরম্যাট তৈরি করবে: SLIP-202607-0001
+                $latest = static::latest('id')->first();
+                $nextId = $latest ? ($latest->id + 1) : 1;
+                $model->salary_slip_no = 'SLIP-' . date('Ym') . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+            }
+        });
+    }
 
     // Relationships
     public function employee(): BelongsTo

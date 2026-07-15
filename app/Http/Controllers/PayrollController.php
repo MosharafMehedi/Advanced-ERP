@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use App\Models\Employee;
 use App\Models\Payroll;
 use App\Models\SalaryStructure;
@@ -34,6 +33,9 @@ class PayrollController extends Controller
         return Inertia::render('Payroll/Index', [
             'payrolls' => $query->latest()->paginate(15)->withQueryString(),
             'filters' => $request->only(['year', 'month', 'status']),
+            'auth' => [
+                'user' => Auth::user(),
+            ],
         ]);
     }
 
@@ -47,6 +49,9 @@ class PayrollController extends Controller
             'employees' => Employee::where('status', 1)
                 ->whereHas('salaryStructure')
                 ->get(['id', 'first_name', 'last_name', 'employee_id', 'gross_salary']),
+            'auth' => [
+                'user' => Auth::user(), // Layout যাতে ভেঙে না যায়
+            ],
         ]);
     }
 
@@ -99,13 +104,15 @@ class PayrollController extends Controller
         $payroll->load(['employee.department', 'employee.designation', 'details', 'processor', 'approver']);
 
         return Inertia::render('Payroll/Show', [
-            'payroll' => $payroll
+            'payroll' => $payroll,
+            'auth' => [
+                'user' => Auth::user(),
+            ],
         ]);
     }
 
     /**
-     * RESOURCE EDIT: স্যালারি স্ট্রাকচার সেটিংস পেজ হিসেবে ব্যবহার করা হলো
-     * GET /payrolls/{payroll}/edit (এখানে যেকোনো আইডি পাস করতে পারেন, যেমন: payrolls/0/edit)
+     * GET /payrolls/{payroll}/edit (স্যালারি স্ট্রাকচার সেটিংস পেজ)
      */
     public function edit($id)
     {
@@ -113,18 +120,21 @@ class PayrollController extends Controller
             'employees' => Employee::with('salaryStructure')
                 ->where('status', 1)
                 ->get(['id', 'first_name', 'last_name', 'employee_id', 'gross_salary']),
+            'auth' => [
+                'user' => Auth::user(), // Layout প্রপ্স সচল রাখার জন্য
+            ],
         ]);
     }
 
     /**
-     * RESOURCE UPDATE: স্ট্রাকচার আপডেট, অ্যাপ্রুভ এবং পেমেন্ট রিলিজ (সব অ্যাকশন ১ জায়গায়)
+     * RESOURCE UPDATE: স্ট্রাকচার আপডেট, অ্যাপ্রুভ এবং পেমেন্ট রিলিজ
      * PUT/PATCH /payrolls/{payroll}
      */
     public function update(Request $request, $id)
     {
         $action = $request->input('action');
 
-        // ১. স্যালারি স্ট্রাকচার সেভ বা আপডেট করার লজিক
+        // 🎯 ১. স্যালারি স্ট্রাকচার সেভ বা আপডেট করার সঠিক লজিক (মডেল সংশোধন করা হয়েছে)
         if ($action === 'salary_structure') {
             $request->validate([
                 'employee_id'               => 'required|exists:employees,id',
@@ -139,6 +149,7 @@ class PayrollController extends Controller
                 'tax_deduction_fixed'       => 'nullable|numeric|min:0',
             ]);
 
+            // ✅ এখানে Payroll এর জায়গায় SalaryStructure ব্যবহার করা হয়েছে
             SalaryStructure::updateOrCreate(
                 ['employee_id' => $request->employee_id],
                 array_merge($request->all(), [
@@ -150,7 +161,7 @@ class PayrollController extends Controller
             return redirect()->back()->with('success', 'Salary structure updated successfully.');
         }
 
-        // বাকি লজিকগুলোর জন্য প্রথমে নির্দিষ্ট পেরোল/স্লিপ রেকর্ডটি খুঁজে নিবে
+        // বাকি লজিকগুলোর জন্য ডাটাবেজ থেকে নির্দিষ্ট স্লিপ রেকর্ডটি খুঁজে নিবে
         $payroll = Payroll::findOrFail($id);
 
         // ২. স্যালারি অনুমোদন (Approve) লজিক

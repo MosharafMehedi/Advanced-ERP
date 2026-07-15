@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link,usePage } from "@inertiajs/react";
 import { FiGrid, FiUsers, FiX, FiChevronLeft,FiSettings,FiLayers,FiMapPin } from "react-icons/fi";
 import { HiOutlineIdentification } from "react-icons/hi2";
+import { FaMoneyBill } from "react-icons/fa";
 
 export default function Sidebar({ showingSidebar, setShowingSidebar }) {
     const { globalSettings } = usePage().props;
@@ -42,7 +43,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                 { id: "branches", name: "Branches", route: "branches.index", activePrefix: "branches", icon: FiMapPin, badge: null },
                 { id: "designations", name: "Designations", route: "designations.index", activePrefix: "designations", icon: HiOutlineIdentification, badge: null },
                 { id: "employees", name: "Employees", route: "employees.index", activePrefix: "employees", icon: FiUsers, badge: null },
-                { id: "payrolls", name: "Payrolls", route: "payrolls.index", activePrefix: "payrolls", icon: FiGrid, badge: null },
+                { id: "payrolls", name: "Payrolls", route: "payrolls.index", activePrefix: "payrolls", icon: FaMoneyBill, badge: null },
 
             ],
         },
