@@ -55,32 +55,42 @@ class Employee extends Model
     }
 
     protected static function boot()
-{
-    parent::boot();
+    {
+        parent::boot();
 
-    static::creating(function ($employee) {
-        if (empty($employee->employee_id)) {
-            $employee->employee_id = self::generateEmployeeId();
-        }
-    });
-}
-
-public static function generateEmployeeId()
-{
-    $year = date('Y');
-    $prefix = "EMP-{$year}-";
-
-    $lastEmployee = self::where('employee_id', 'like', "{$prefix}%")
-        ->orderBy('employee_id', 'desc')
-        ->first();
-
-    if ($lastEmployee) {
-        $lastNumber = (int) substr($lastEmployee->employee_id, -3);
-        $nextNumber = $lastNumber + 1;
-    } else {
-        $nextNumber = 1;
+        static::creating(function ($employee) {
+            if (empty($employee->employee_id)) {
+                $employee->employee_id = self::generateEmployeeId();
+            }
+        });
     }
 
-    return $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
-}
+    public static function generateEmployeeId()
+    {
+        $year = date('Y');
+        $prefix = "EMP-{$year}-";
+
+        $lastEmployee = self::where('employee_id', 'like', "{$prefix}%")
+            ->orderBy('employee_id', 'desc')
+            ->first();
+
+        if ($lastEmployee) {
+            $lastNumber = (int) substr($lastEmployee->employee_id, -3);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            $nextNumber = 1;
+        }
+
+        return $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+    }
+
+    public function salaryStructure(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Payroll::class, 'employee_id');
+    }
+
+    public function payrolls(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Payroll::class, 'employee_id');
+    }
 }

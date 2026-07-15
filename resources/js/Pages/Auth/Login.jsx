@@ -4,8 +4,9 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import ThemeToggle from '@/Components/ThemeToggle';
 import ApplicationLogo from '@/Components/ApplicationLogo';
+import { FiShield } from 'react-icons/fi';
 
-import { Head, useForm,usePage } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 
@@ -18,17 +19,16 @@ export default function Login({ status }) {
         remember: false,
     });
 
-    // Reusable utility function to handle theme-compliant SweetAlerts dynamically based on system config
     const fireAlert = (options) => {
         const isDark = document.documentElement.classList.contains('dark');
         return Swal.fire({
             ...options,
-            background: isDark ? '#0f172a' : '#ffffff', // slate-900 / white
-            color: isDark ? '#f8fafc' : '#0f172a',      // slate-50 / slate-900
-            confirmButtonColor: '#4f46e5',               // indigo-600
-            cancelButtonColor: '#64748b',                // slate-500
+            background: isDark ? '#0f172a' : '#ffffff',
+            color: isDark ? '#f8fafc' : '#0f172a',
+            confirmButtonColor: '#1d4ed8',
+            cancelButtonColor: '#64748b',
             customClass: {
-                popup: 'rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl font-sans',
+                popup: 'rounded-sm border border-slate-300 dark:border-slate-700 shadow-xl font-sans',
                 title: 'font-bold text-xl',
                 htmlContainer: 'text-sm'
             }
@@ -37,7 +37,7 @@ export default function Login({ status }) {
 
     const submit = (e) => {
         e.preventDefault();
-        
+
         post(route('login'), {
             onError: (err) => {
                 fireAlert({
@@ -52,41 +52,43 @@ export default function Login({ status }) {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 font-sans antialiased selection:bg-indigo-600 selection:text-white relative overflow-hidden transition-colors duration-300">
+        <div
+            className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-950 px-4 font-sans antialiased selection:bg-blue-700 selection:text-white relative overflow-hidden transition-colors duration-300"
+            style={{
+                backgroundImage:
+                    'radial-gradient(circle, rgba(100,116,139,0.18) 1px, transparent 1px)',
+                backgroundSize: '22px 22px',
+            }}
+        >
             <Head title="ERP Login" />
-            
-            {/* Position absolute wrapper map context format layout to prevent dynamic styling break */}
+
+            {/* Theme toggle */}
             <div className="absolute top-5 right-5 z-50">
                 <ThemeToggle />
             </div>
 
-            {/* --- Easily Replaceable Background Watermark Image --- */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0 scale-100 sm:scale-110 opacity-[0.04] dark:opacity-[0.02] transition-opacity duration-300">
-                <img 
-                    src="/loginPage/logo.png" 
-                    alt="System Watermark" 
-                    className="w-[550px] h-[550px] object-contain dark:invert"
-                />
-            </div>
+            {/* Soft depth glow behind the card — subtle, blue-tinted, non-distracting */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] bg-blue-700/[0.05] dark:bg-blue-500/[0.04] blur-[90px] pointer-events-none rounded-full"></div>
 
-            {/* Subtle Depth Glow */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-indigo-600/[0.02] dark:bg-indigo-500/[0.02] blur-[80px] pointer-events-none rounded-full"></div>
+            {/* Fade the dot-grid out near the edges so it reads as texture, not noise */}
+            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,theme(colors.slate.100)_78%)] dark:bg-[radial-gradient(circle_at_center,transparent_0%,theme(colors.slate.950)_78%)]"></div>
 
             {/* --- Main Content Layout --- */}
             <div className="w-full max-w-[420px] relative z-10">
-                
                 {/* Brand Header */}
                 <div className="text-center mb-6">
-                    <div className="inline-block mb-3">
+                    <div className="inline-flex items-center justify-center mb-3">
                         {globalSettings?.logo_url ? (
-                        <img 
-                            src={globalSettings.logo_url} 
-                            alt={globalSettings?.app_name || "Logo"} 
-                            className="block h-6 w-auto md:h-8 object-contain" 
-                        />
-                    ) : (
-                        <ApplicationLogo className="block h-6 w-6 md:h-8 md:w-auto fill-current text-[#A7F3D0] dark:text-indigo-400" />
-                    )}
+                            <img
+                                src={globalSettings.logo_url}
+                                alt={globalSettings?.app_name || 'Logo'}
+                                className="block h-8 w-auto md:h-9 object-contain"
+                            />
+                        ) : (
+                            <div className="flex h-11 w-11 items-center justify-center rounded-sm bg-blue-700 text-white">
+                                <ApplicationLogo className="h-6 w-6 fill-current text-white" />
+                            </div>
+                        )}
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight transition-colors duration-300">
                         Welcome to {globalSettings?.app_name || 'My Application'}
@@ -96,14 +98,20 @@ export default function Login({ status }) {
                     </p>
                 </div>
 
-                {/* --- Standard Card Form (Updated with High-End Layout) --- */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-7 sm:p-8 shadow-2xl shadow-slate-200/30 dark:shadow-none transition-all duration-300">
-                    <form onSubmit={submit} className="space-y-5">
-                        
+                {/* --- Login Card --- */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-sm shadow-xl shadow-slate-300/30 dark:shadow-none overflow-hidden transition-all duration-300">
+                    {/* Signature top accent — same corporate identity marker as the rest of the ERP */}
+                    <div className="h-1 w-full bg-blue-700"></div>
+
+                    <form onSubmit={submit} className="p-7 sm:p-8 space-y-5">
                         {/* Email Address Input */}
                         <div>
-                            <InputLabel htmlFor="email" value="Email Address" className="text-slate-700 dark:text-slate-300 font-semibold text-sm transition-colors duration-300" />
-                            <div className="mt-1.5 relative rounded-xl shadow-sm">
+                            <InputLabel
+                                htmlFor="email"
+                                value="Email Address"
+                                className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 transition-colors duration-300"
+                            />
+                            <div className="mt-1.5 relative">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -114,7 +122,7 @@ export default function Login({ status }) {
                                     type="email"
                                     name="email"
                                     value={data.email}
-                                    className="block w-full pl-10 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-indigo-500 focus:ring focus:ring-indigo-500/10 transition-all duration-200 shadow-sm"
+                                    className="block w-full pl-10 py-2.5 text-sm rounded-sm border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-blue-600 focus:ring focus:ring-blue-600/10 transition-all duration-200"
                                     placeholder="name@company.com"
                                     autoComplete="username"
                                     isFocused={true}
@@ -126,10 +134,12 @@ export default function Login({ status }) {
 
                         {/* Password Input */}
                         <div>
-                            <div className="flex justify-between items-center">
-                                <InputLabel htmlFor="password" value="Password" className="text-slate-700 dark:text-slate-300 font-semibold text-sm transition-colors duration-300" />
-                            </div>
-                            <div className="mt-1.5 relative rounded-xl shadow-sm">
+                            <InputLabel
+                                htmlFor="password"
+                                value="Password"
+                                className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 transition-colors duration-300"
+                            />
+                            <div className="mt-1.5 relative">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
                                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -140,7 +150,7 @@ export default function Login({ status }) {
                                     type={showPassword ? 'text' : 'password'}
                                     name="password"
                                     value={data.password}
-                                    className="block w-full pl-10 pr-10 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-indigo-500 focus:ring focus:ring-indigo-500/10 transition-all duration-200 shadow-sm"
+                                    className="block w-full pl-10 pr-10 py-2.5 text-sm rounded-sm border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-blue-600 focus:ring focus:ring-blue-600/10 transition-all duration-200"
                                     placeholder="••••••••"
                                     autoComplete="current-password"
                                     required
@@ -167,7 +177,7 @@ export default function Login({ status }) {
                                     name="remember"
                                     checked={data.remember}
                                     onChange={(e) => setData('remember', e.target.checked)}
-                                    className="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500/20 focus:ring-offset-white dark:focus:ring-offset-slate-900"
+                                    className="rounded-sm border-slate-300 dark:border-slate-700 text-blue-700 focus:ring-blue-600/20 focus:ring-offset-white dark:focus:ring-offset-slate-900"
                                 />
                                 <span className="ms-2.5 text-sm text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors font-medium">
                                     Keep me logged in
@@ -177,8 +187,8 @@ export default function Login({ status }) {
 
                         {/* Submit Execution */}
                         <div className="pt-1">
-                            <PrimaryButton 
-                                className="w-full h-11 inline-flex items-center justify-center rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold shadow-md shadow-indigo-600/10 hover:shadow-indigo-600/20 active:scale-[0.99] transition-all disabled:opacity-50 text-sm tracking-wide normal-case" 
+                            <PrimaryButton
+                                className="w-full h-11 inline-flex items-center justify-center rounded-sm bg-blue-700 hover:bg-blue-800 active:bg-blue-900 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-semibold shadow-sm active:scale-[0.99] transition-all disabled:opacity-50 text-sm tracking-wide normal-case"
                                 disabled={processing}
                             >
                                 {processing ? (
@@ -190,7 +200,7 @@ export default function Login({ status }) {
                                         <span>Verifying...</span>
                                     </div>
                                 ) : (
-                                    "Sign In"
+                                    'Sign In'
                                 )}
                             </PrimaryButton>
                         </div>
@@ -198,9 +208,15 @@ export default function Login({ status }) {
                 </div>
 
                 {/* Footer Security Note */}
-                <div className="text-center mt-6 text-[11px] font-medium tracking-wider text-slate-400 dark:text-slate-600 uppercase flex items-center justify-center gap-1 transition-colors duration-300">
-                    🛡️ Enterprise Secured Environment
-                </div>
+                <div className="mt-7 pt-5 border-t border-slate-200 dark:border-slate-800 text-center">
+                        <div className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
+                            <FiShield className="h-3.5 w-3.5 text-blue-700 dark:text-blue-400" />
+                            Enterprise Secured Environment
+                        </div>
+                        <p className="mt-1.5 text-[11px] text-slate-400 dark:text-slate-600">
+                            © {new Date().getFullYear()} {globalSettings?.app_name || 'ERP System'}. All rights reserved.
+                        </p>
+                    </div>
             </div>
         </div>
     );
