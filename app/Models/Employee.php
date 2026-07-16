@@ -86,7 +86,7 @@ class Employee extends Model
 
     public function salaryStructure(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Payroll::class, 'employee_id');
+        return $this->hasOne(SalaryStructure::class, 'employee_id');
     }
 
     public function payrolls(): \Illuminate\Database\Eloquent\Relations\HasMany

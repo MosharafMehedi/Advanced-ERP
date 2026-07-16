@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, router, usePage, Link } from '@inertiajs/react';
+import Swal from 'sweetalert2';
 import { 
     FiArrowLeft, FiSave, FiUser, FiDollarSign, FiPercent, 
     FiHome, FiHeart, FiTruck, FiSmartphone, FiWifi,
     FiPieChart, FiUsers, FiBriefcase, FiCheckCircle,
     FiAlertCircle, FiSearch, FiX
 } from 'react-icons/fi';
+
+function swalTheme() {
+    const isDark = document.documentElement.classList.contains('dark');
+    return {
+        background: isDark ? '#0f172a' : '#ffffff',
+        color: isDark ? '#f1f5f9' : '#0f172a',
+    };
+}
 
 export default function Structure({ employees }) {
     const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -25,6 +34,16 @@ export default function Structure({ employees }) {
         provident_fund_percentage: 0,
         tax_deduction_fixed: 0,
     });
+
+    useEffect(() => {
+        if (selectedEmployee) {
+            const fresh = employees.find(e => e.id === selectedEmployee.id);
+            if (fresh) setSelectedEmployee(fresh);
+        }
+        // Only re-run when the employees list itself changes (e.g. after a save),
+        // not on every selectedEmployee state change — that would loop.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [employees]);
 
     const handleEmployeeSelect = (emp) => {
         setSelectedEmployee(emp);
@@ -54,8 +73,24 @@ export default function Structure({ employees }) {
             action: 'salary_structure'
         }, {
             onSuccess: () => {
-                // SweetAlert handled via flash
-            }
+                router.reload({ only: ['employees'] });
+                Swal.fire({
+                    title: 'Saved!',
+                    text: 'Salary structure updated successfully.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    ...swalTheme(),
+                });
+            },
+            onError: (errors) => {
+                Swal.fire({
+                    title: 'Failed to save',
+                    text: errors.error || 'Please check the form and try again.',
+                    icon: 'error',
+                    ...swalTheme(),
+                });
+            },
         });
     };
 

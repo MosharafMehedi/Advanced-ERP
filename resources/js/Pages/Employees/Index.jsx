@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
-import { FiPlus, FiSearch, FiEdit, FiTrash2, FiUser, FiBriefcase, FiUsers, FiX, FiInbox, FiDownload, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiEdit, FiTrash2, FiUser, FiBriefcase, FiUsers, FiX, FiInbox, FiDownload, FiChevronLeft, FiChevronRight,FiEye } from 'react-icons/fi';
 import Swal from 'sweetalert2';
 import { useState, useEffect } from 'react';
 

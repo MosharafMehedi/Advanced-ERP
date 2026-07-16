@@ -4,144 +4,165 @@ namespace App\Services;
 
 use App\Models\Employee;
 use App\Models\Payroll;
+use App\Models\PayrollDetail;
 use App\Models\SalaryStructure;
-use App\Models\SalarySlipDetail;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class PayrollService
 {
     /**
-     * Calculate and save salary for a single employee
+     * Generate a salary slip for one employee for one month.
+     *
+     * @throws Exception if a structure is missing or a slip already exists
      */
-    public function calculateSalary(Employee $employee, $year, $month, array $attendance = [])
+    public function calculateSalary(Employee $employee, int $year, int $month, array $input): Payroll
     {
-        return DB::transaction(function () use ($employee, $year, $month, $attendance) {
-            // ১. এমপ্লয়ির স্যালারি স্ট্রাকচার এবং অফিসিয়াল গ্রস স্যালারি চেক করা
-            $structure = $employee->salaryStructure;
-            if (!$structure) {
-                throw new Exception("Salary structure not defined for Employee: {$employee->employee_id}");
+        $structure = SalaryStructure::where('employee_id', $employee->id)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$structure) {
+            throw new Exception("No salary structure configured for {$employee->first_name} {$employee->last_name}. Please set it up first.");
+        }
+
+        if (Payroll::where('employee_id', $employee->id)->where('year', $year)->where('month', $month)->exists()) {
+            throw new Exception('A salary slip already exists for this employee for the selected month.');
+        }
+
+        $gross = (float) $employee->gross_salary;
+
+        $totalDays        = (int) ($input['total_days'] ?? 30);
+        $presentDays       = (int) ($input['present_days'] ?? 0);
+        $absentDays        = (int) ($input['absent_days'] ?? 0);
+        $leaveWithPay      = (int) ($input['leave_with_pay'] ?? 0);
+        $leaveWithoutPay   = (int) ($input['leave_without_pay'] ?? 0);
+        $lateDays          = (int) ($input['late_days'] ?? 0);
+
+        $bonus          = (float) ($input['bonus'] ?? 0);
+        $arrears        = (float) ($input['arrears'] ?? 0);
+        $fine           = (float) ($input['fine'] ?? 0);
+        $loanDeduction  = (float) ($input['loan_deduction'] ?? 0);
+
+        $perDayRate = $totalDays > 0 ? $gross / $totalDays : 0;
+
+        // --- Earnings (based on full structure, attendance handled as a deduction line) ---
+        $basic      = round($gross * $structure->basic_percentage / 100, 2);
+        $houseRent  = round($gross * $structure->house_rent_percentage / 100, 2);
+        $medical    = round($gross * $structure->medical_percentage / 100, 2);
+        $conveyance = round($gross * $structure->conveyance_percentage / 100, 2);
+
+        $earnings = [
+            ['name' => 'Basic Salary', 'amount' => $basic],
+            ['name' => 'House Rent Allowance', 'amount' => $houseRent],
+            ['name' => 'Medical Allowance', 'amount' => $medical],
+            ['name' => 'Conveyance Allowance', 'amount' => $conveyance],
+        ];
+        if ($structure->fixed_allowance > 0) {
+            $earnings[] = ['name' => 'Fixed Allowance', 'amount' => (float) $structure->fixed_allowance];
+        }
+        if ($structure->mobile_allowance > 0) {
+            $earnings[] = ['name' => 'Mobile Allowance', 'amount' => (float) $structure->mobile_allowance];
+        }
+        if ($structure->internet_allowance > 0) {
+            $earnings[] = ['name' => 'Internet Allowance', 'amount' => (float) $structure->internet_allowance];
+        }
+        if ($bonus > 0) {
+            $earnings[] = ['name' => 'Bonus', 'amount' => $bonus];
+        }
+        if ($arrears > 0) {
+            $earnings[] = ['name' => 'Arrears', 'amount' => $arrears];
+        }
+
+        // --- Deductions ---
+        $deductions = [];
+
+        $providentFund = round($basic * $structure->provident_fund_percentage / 100, 2);
+        if ($providentFund > 0) {
+            $deductions[] = ['name' => 'Provident Fund', 'amount' => $providentFund];
+        }
+
+        if ($structure->tax_deduction_fixed > 0) {
+            $deductions[] = ['name' => 'Income Tax', 'amount' => (float) $structure->tax_deduction_fixed];
+        }
+
+        // Unpaid absence: absent days + leave without pay are deducted at the per-day rate.
+        $unpaidDays = $absentDays + $leaveWithoutPay;
+        if ($unpaidDays > 0) {
+            $deductions[] = ['name' => 'Absence Deduction (' . $unpaidDays . ' day(s))', 'amount' => round($perDayRate * $unpaidDays, 2)];
+        }
+
+        // Late penalty: every 3 late days costs 1 day's pay (common BD convention).
+        $latePenaltyDays = intdiv($lateDays, 3);
+        if ($latePenaltyDays > 0) {
+            $deductions[] = ['name' => 'Late Attendance Penalty', 'amount' => round($perDayRate * $latePenaltyDays, 2)];
+        }
+
+        if ($fine > 0) {
+            $deductions[] = ['name' => 'Fine / Penalty', 'amount' => $fine];
+        }
+        if ($loanDeduction > 0) {
+            $deductions[] = ['name' => 'Loan Deduction', 'amount' => $loanDeduction];
+        }
+
+        $totalAllowance = round(array_sum(array_column($earnings, 'amount')), 2);
+        $totalDeduction = round(array_sum(array_column($deductions, 'amount')), 2);
+        $netPayable     = round($totalAllowance - $totalDeduction, 2);
+
+        return DB::transaction(function () use (
+            $employee, $year, $month, $input, $gross,
+            $totalDays, $presentDays, $absentDays, $leaveWithPay, $leaveWithoutPay, $lateDays,
+            $bonus, $arrears, $fine, $loanDeduction,
+            $totalAllowance, $totalDeduction, $netPayable, $earnings, $deductions
+        ) {
+            $payroll = Payroll::create([
+                'slip_no'           => $this->generateSlipNo($employee, $year, $month),
+                'employee_id'       => $employee->id,
+                'year'              => $year,
+                'month'             => $month,
+                'total_days'        => $totalDays,
+                'working_days'      => $input['working_days'] ?? 0,
+                'present_days'      => $presentDays,
+                'absent_days'       => $absentDays,
+                'leave_with_pay'    => $leaveWithPay,
+                'leave_without_pay' => $leaveWithoutPay,
+                'late_days'         => $lateDays,
+                'bonus'             => $bonus,
+                'arrears'           => $arrears,
+                'fine'              => $fine,
+                'loan_deduction'    => $loanDeduction,
+                'gross_salary'      => $gross,
+                'total_allowance'   => $totalAllowance,
+                'total_deduction'   => $totalDeduction,
+                'net_payable'       => $netPayable,
+                'status'            => 'Generated',
+                'processed_by'      => Auth::id(),
+            ]);
+
+            foreach ($earnings as $row) {
+                PayrollDetail::create([
+                    'payroll_id' => $payroll->id,
+                    'type'       => 'Allowance',
+                    'name'       => $row['name'],
+                    'amount'     => $row['amount'],
+                ]);
             }
-
-            $grossSalary = $employee->gross_salary ?? 0;
-            if ($grossSalary <= 0) {
-                throw new Exception("Gross salary must be greater than 0 for Employee: {$employee->employee_id}");
-            }
-
-            // ২. অ্যাটেনডেন্সের ডিফল্ট ডাটা সেটআপ করা
-            $totalDays = $attendance['total_days'] ?? 30;
-            $workingDays = $attendance['working_days'] ?? 22;
-            $presentDays = $attendance['present_days'] ?? 22;
-            $absentDays = $attendance['absent_days'] ?? 0;
-            $leaveWithPay = $attendance['leave_with_pay'] ?? 0;
-            $leaveWithoutPay = $attendance['leave_without_pay'] ?? 0;
-            $lateDays = $attendance['late_days'] ?? 0;
-
-            // ৩. Earnings ব্রেকডাউন হিসাব করা (গ্রস স্যালারির ওপর পার্সেন্টেজ অনুযায়ী)
-            $basic = round(($grossSalary * $structure->basic_percentage) / 100, 2);
-            $houseRent = round(($grossSalary * $structure->house_rent_percentage) / 100, 2);
-            $medical = round(($grossSalary * $structure->medical_percentage) / 100, 2);
-            $conveyance = round(($grossSalary * $structure->conveyance_percentage) / 100, 2);
-
-            $fixedAllowance = $structure->fixed_allowance ?? 0;
-            $mobileAllowance = $structure->mobile_allowance ?? 0;
-            $internetAllowance = $structure->internet_allowance ?? 0;
-
-            // ৪. অতিরিক্ত আর্নিংস (যেমন: বোনাস বা এরিয়ার যদি ইনপুট হিসেবে পাঠানো হয়)
-            $bonus = $attendance['bonus'] ?? 0;
-            $arrears = $attendance['arrears'] ?? 0;
-
-            $totalEarnings = $grossSalary + $fixedAllowance + $mobileAllowance + $internetAllowance + $bonus + $arrears;
-
-            // ৫. Deductions হিসাব করা
-            $providentFund = round(($basic * $structure->provident_fund_percentage) / 100, 2);
-            $tax = $structure->tax_deduction_fixed ?? 0;
-
-            // unpaid_leaves (বিনা বেতনে ছুটি) এর জন্য স্যালারি কর্তন লজিক
-            $unpaidLeavePenalty = 0;
-            if ($leaveWithoutPay > 0 && $totalDays > 0) {
-                // ১ দিনের বেসিক বা গ্রস স্যালারি অনুযায়ী ডিডাকশন (এখানে ১ দিনের গ্রস স্যালারি কাটা হচ্ছে)
-                $oneDaySalary = $grossSalary / $totalDays;
-                $unpaidLeavePenalty = round($oneDaySalary * $leaveWithoutPay, 2);
-            }
-
-            // লেট বা ফাইন (যদি ইনপুট হিসেবে পাঠানো হয়)
-            $fine = $attendance['fine'] ?? 0;
-            $loanDeduction = $attendance['loan_deduction'] ?? 0;
-
-            $totalDeductions = $providentFund + $tax + $unpaidLeavePenalty + $fine + $loanDeduction;
-
-            // ৬. Net Payable হিসাব করা
-            $netPayable = $totalEarnings - $totalDeductions;
-
-            // ৭. স্যালারি স্লিপের জন্য ইউনিক স্লিপ নম্বর জেনারেট করা
-            $slipNo = 'SLIP-' . $year . str_pad($month, 2, '0', STR_PAD_LEFT) . '-' . $employee->id;
-
-            // ৮. স্যালারি স্লিপ ক্রিয়েট বা আপডেট করা (যদি অলরেডি জেনারেট করা থাকে)
-            $payroll = Payroll::updateOrCreate(
-                [
-                    'employee_id' => $employee->id,
-                    'year' => $year,
-                    'month' => $month,
-                ],
-                [
-                    'salary_slip_no' => $slipNo,
-                    'total_days' => $totalDays,
-                    'working_days' => $workingDays,
-                    'present_days' => $presentDays,
-                    'absent_days' => $absentDays,
-                    'leave_with_pay' => $leaveWithPay,
-                    'leave_without_pay' => $leaveWithoutPay,
-                    'late_days' => $lateDays,
-                    'gross_salary' => $grossSalary,
-                    'total_earnings' => $totalEarnings,
-                    'total_deductions' => $totalDeductions,
-                    'net_payable' => $netPayable,
-                    'status' => 'Generated',
-                    'bank_name' => $employee->bank_name ?? null,
-                    'bank_branch_name' => $employee->bank_branch_name ?? null,
-                    'bank_account_no' => $employee->bank_account_no ?? null,
-                    'processed_by' => Auth::id(),
-                ]
-            );
-
-            // ৯. পূর্বের স্লিপ ডিটেইলস ক্লিয়ার করে নতুন করে ব্রেকডাউন সেভ করা
-            $payroll->details()->delete();
-
-            $components = [
-                // Earnings
-                ['type' => 'earnings', 'name' => 'Basic Salary', 'amount' => $basic],
-                ['type' => 'earnings', 'name' => 'House Rent Allowance', 'amount' => $houseRent],
-                ['type' => 'earnings', 'name' => 'Medical Allowance', 'amount' => $medical],
-                ['type' => 'earnings', 'name' => 'Conveyance Allowance', 'amount' => $conveyance],
-                ['type' => 'earnings', 'name' => 'Fixed Allowance', 'amount' => $fixedAllowance],
-                ['type' => 'earnings', 'name' => 'Mobile Allowance', 'amount' => $mobileAllowance],
-                ['type' => 'earnings', 'name' => 'Internet Allowance', 'amount' => $internetAllowance],
-                ['type' => 'earnings', 'name' => 'Festival Bonus', 'amount' => $bonus],
-                ['type' => 'earnings', 'name' => 'Arrears', 'amount' => $arrears],
-
-                // Deductions
-                ['type' => 'deductions', 'name' => 'Provident Fund', 'amount' => $providentFund],
-                ['type' => 'deductions', 'name' => 'Income Tax', 'amount' => $tax],
-                ['type' => 'deductions', 'name' => 'Unpaid Leave Penalty', 'amount' => $unpaidLeavePenalty, 'remarks' => "{$leaveWithoutPay} days unpaid leave"],
-                ['type' => 'deductions', 'name' => 'Fine/Penalty', 'amount' => $fine],
-                ['type' => 'deductions', 'name' => 'Loan Recovery', 'amount' => $loanDeduction],
-            ];
-
-            foreach ($components as $component) {
-                if ($component['amount'] > 0) {
-                    SalarySlipDetail::create([
-                        'salary_slip_id' => $payroll->id,
-                        'type' => $component['type'],
-                        'component_name' => $component['name'],
-                        'amount' => $component['amount'],
-                        'remarks' => $component['remarks'] ?? null,
-                    ]);
-                }
+            foreach ($deductions as $row) {
+                PayrollDetail::create([
+                    'payroll_id' => $payroll->id,
+                    'type'       => 'Deduction',
+                    'name'       => $row['name'],
+                    'amount'     => $row['amount'],
+                ]);
             }
 
             return $payroll;
         });
+    }
+
+    protected function generateSlipNo(Employee $employee, int $year, int $month): string
+    {
+        return sprintf('PS-%d%02d-%s', $year, $month, $employee->employee_id ?? $employee->id);
     }
 }

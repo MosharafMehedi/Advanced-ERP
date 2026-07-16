@@ -12,6 +12,10 @@ import { useState, useEffect } from 'react';
 
 // Status chip classes — matching employee module style
 const STATUS_STYLES = {
+    'Draft': {
+        label: 'Draft',
+        classes: 'bg-slate-100 text-slate-600 border-l-4 border-slate-400 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500'
+    },
     'Generated': {
         label: 'Generated',
         classes: 'bg-amber-50 text-amber-800 border-l-4 border-amber-600 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500'
@@ -23,6 +27,10 @@ const STATUS_STYLES = {
     'Paid': {
         label: 'Paid',
         classes: 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500'
+    },
+    'Cancelled': {
+        label: 'Cancelled',
+        classes: 'bg-red-50 text-red-700 border-l-4 border-red-600 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500'
     }
 };
 
@@ -447,7 +455,7 @@ export default function Index({ payrolls, filters }) {
                                                             Gross: <span className="font-semibold">{formatCurrency(p.gross_salary)}</span>
                                                         </div>
                                                         <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                                                            Deductions: {formatCurrency(p.total_deductions || 0)}
+                                                            Deductions: {formatCurrency(p.total_deduction || 0)}
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 border-l border-slate-100 dark:border-slate-800">
