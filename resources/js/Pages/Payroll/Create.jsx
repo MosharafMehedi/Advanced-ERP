@@ -31,6 +31,8 @@ export default function Create({ employees }) {
     });
 
     const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [attendanceLoaded, setAttendanceLoaded] = useState(false);
+    const [attendanceLoading, setAttendanceLoading] = useState(false);
 
     useEffect(() => {
         if (data.employee_id) {
@@ -40,6 +42,34 @@ export default function Create({ employees }) {
             setSelectedEmployee(null);
         }
     }, [data.employee_id]);
+
+    // Auto-fill attendance fields from the Attendance module whenever
+    // employee/year/month is selected — saves HR from typing these by hand.
+    useEffect(() => {
+        if (!data.employee_id || !data.year || !data.month) {
+            setAttendanceLoaded(false);
+            return;
+        }
+
+        setAttendanceLoading(true);
+        fetch(route('attendances.summary', [data.employee_id, data.year, data.month]))
+            .then(res => res.ok ? res.json() : Promise.reject(res))
+            .then(summary => {
+                setData(prev => ({
+                    ...prev,
+                    total_days: summary.total_days,
+                    working_days: summary.working_days,
+                    present_days: summary.present_days,
+                    absent_days: summary.absent_days,
+                    leave_with_pay: summary.leave_with_pay,
+                    leave_without_pay: summary.leave_without_pay,
+                    late_days: summary.late_days,
+                }));
+                setAttendanceLoaded(true);
+            })
+            .catch(() => setAttendanceLoaded(false))
+            .finally(() => setAttendanceLoading(false));
+    }, [data.employee_id, data.year, data.month]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -197,6 +227,14 @@ export default function Create({ employees }) {
                                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
                                     <FiClock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                     Attendance Details
+                                    {attendanceLoading && (
+                                        <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500">Loading from Attendance…</span>
+                                    )}
+                                    {!attendanceLoading && attendanceLoaded && (
+                                        <span className="inline-flex items-center gap-1 text-[11px] font-normal text-emerald-600 dark:text-emerald-400">
+                                            <FiCheckCircle className="h-3 w-3" /> Auto-filled from Attendance — you can still adjust below
+                                        </span>
+                                    )}
                                 </h3>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div>

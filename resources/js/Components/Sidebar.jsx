@@ -44,6 +44,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                 { id: "designations", name: "Designations", route: "designations.index", activePrefix: "designations", icon: HiOutlineIdentification, badge: null },
                 { id: "employees", name: "Employees", route: "employees.index", activePrefix: "employees", icon: FiUsers, badge: null },
                 { id: "payrolls", name: "Payrolls", route: "payrolls.index", activePrefix: "payrolls", icon: FaMoneyBill, badge: null },
+                { id: "attendance", name: "Attendance", route: "attendance.index", activePrefix: "attendance", icon: FiClock, badge: null },
 
             ],
         },

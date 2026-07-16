@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
@@ -36,6 +37,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('designations', DesignationController::class);
     Route::resource('employees', EmployeeController::class);
     Route::resource('payrolls', PayrollController::class);
+    Route::resource('attendances', AttendanceController::class);
+
+    Route::post('attendances/check-in', [AttendanceController::class, 'checkIn'])->name('attendances.checkIn');
+    Route::post('attendances/check-out', [AttendanceController::class, 'checkOut'])->name('attendances.checkOut');
+    Route::get('attendances/summary/{employee}/{year}/{month}', [AttendanceController::class, 'monthlySummary'])->name('attendances.summary');
+
 });
 
 require __DIR__.'/auth.php';
