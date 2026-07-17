@@ -93,4 +93,10 @@ class Employee extends Model
     {
         return $this->hasMany(Payroll::class, 'employee_id');
     }
+
+
+public function shift(): BelongsTo
+{
+    return $this->belongsTo(Shift::class);
+}
 }

@@ -8,6 +8,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('employees', EmployeeController::class);
     Route::resource('payrolls', PayrollController::class);
     Route::resource('attendances', AttendanceController::class);
+    Route::resource('shifts', ShiftController::class);
 
     Route::post('attendances/check-in', [AttendanceController::class, 'checkIn'])->name('attendances.checkIn');
     Route::post('attendances/check-out', [AttendanceController::class, 'checkOut'])->name('attendances.checkOut');
