@@ -5,6 +5,7 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
@@ -40,6 +41,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('payrolls', PayrollController::class);
     Route::resource('attendances', AttendanceController::class);
     Route::resource('shifts', ShiftController::class);
+    Route::resource('holidays', HolidayController::class);
 
     Route::post('attendances/check-in', [AttendanceController::class, 'checkIn'])->name('attendances.checkIn');
     Route::post('attendances/check-out', [AttendanceController::class, 'checkOut'])->name('attendances.checkOut');

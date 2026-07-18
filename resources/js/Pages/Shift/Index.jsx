@@ -66,42 +66,46 @@ export default function Index({ shifts }) {
                         </button>
                     </div>
 
-                    <table className="w-full text-sm">
-                        <thead className="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                            <tr>
-                                <th className="text-left px-5 py-2.5">Name</th>
-                                <th className="text-left px-5 py-2.5">Start</th>
-                                <th className="text-left px-5 py-2.5">End</th>
-                                <th className="text-left px-5 py-2.5">Grace</th>
-                                <th className="text-left px-5 py-2.5">Employees</th>
-                                <th className="text-right px-5 py-2.5">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {shifts.map(shift => (
-                                <tr key={shift.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                                    <td className="px-5 py-2.5 font-medium text-slate-800 dark:text-slate-200">{shift.name}</td>
-                                    <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400">{shift.start_time?.substring(0, 5)}</td>
-                                    <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400">{shift.end_time?.substring(0, 5)}</td>
-                                    <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400">{shift.grace_minutes} min</td>
-                                    <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                                        <FiUsers className="h-3.5 w-3.5" /> {shift.employees_count ?? 0}
-                                    </td>
-                                    <td className="px-5 py-2.5 text-right">
-                                        <button onClick={() => openModal(shift)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-500/30 rounded-sm hover:bg-blue-50 dark:hover:bg-blue-500/10 mr-1.5">
-                                            <FiEdit2 className="h-3 w-3" /> Edit
-                                        </button>
-                                        <button onClick={() => handleDelete(shift)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-400 border border-red-300 dark:border-red-500/30 rounded-sm hover:bg-red-50 dark:hover:bg-red-500/10">
-                                            <FiTrash2 className="h-3 w-3" />
-                                        </button>
-                                    </td>
+                    {/* টেবিল সবসময় টেবিল আকারেই থাকে; জায়গা কম পড়লে শুধু horizontal scroll হবে,
+                        মোবাইলেও Action বাটন কলাম হিসেবে ডানপাশেই থাকবে, নিচে ভাঙবে না। */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[640px] text-sm">
+                            <thead className="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                <tr>
+                                    <th className="text-left px-5 py-2.5">Name</th>
+                                    <th className="text-left px-5 py-2.5">Start</th>
+                                    <th className="text-left px-5 py-2.5">End</th>
+                                    <th className="text-left px-5 py-2.5">Grace</th>
+                                    <th className="text-left px-5 py-2.5">Employees</th>
+                                    <th className="text-right px-5 py-2.5">Actions</th>
                                 </tr>
-                            ))}
-                            {shifts.length === 0 && (
-                                <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-400 text-sm">No shifts defined yet.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {shifts.map(shift => (
+                                    <tr key={shift.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                        <td className="px-5 py-2.5 font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">{shift.name}</td>
+                                        <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400 whitespace-nowrap">{shift.start_time?.substring(0, 5)}</td>
+                                        <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400 whitespace-nowrap">{shift.end_time?.substring(0, 5)}</td>
+                                        <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400 whitespace-nowrap">{shift.grace_minutes} min</td>
+                                        <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                            <span className="inline-flex items-center gap-1"><FiUsers className="h-3.5 w-3.5" /> {shift.employees_count ?? 0}</span>
+                                        </td>
+                                        <td className="px-5 py-2.5 text-right whitespace-nowrap">
+                                            <button onClick={() => openModal(shift)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-500/30 rounded-sm hover:bg-blue-50 dark:hover:bg-blue-500/10 mr-1.5">
+                                                <FiEdit2 className="h-3 w-3" /> Edit
+                                            </button>
+                                            <button onClick={() => handleDelete(shift)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-400 border border-red-300 dark:border-red-500/30 rounded-sm hover:bg-red-50 dark:hover:bg-red-500/10">
+                                                <FiTrash2 className="h-3 w-3" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {shifts.length === 0 && (
+                                    <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-400 text-sm">No shifts defined yet.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 

@@ -151,53 +151,57 @@ export default function Index({ attendances, employees, shifts, filters }) {
                         </div>
                     </div>
 
-                    <table className="w-full text-sm">
-                        <thead className="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                            <tr>
-                                <th className="text-left px-5 py-2.5">Employee</th>
-                                <th className="text-left px-5 py-2.5">Shift</th>
-                                <th className="text-left px-5 py-2.5">Check In</th>
-                                <th className="text-left px-5 py-2.5">Check Out</th>
-                                <th className="text-left px-5 py-2.5">Status</th>
-                                <th className="text-left px-5 py-2.5">Late (min)</th>
-                                <th className="text-right px-5 py-2.5">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {filteredEmployees.map(emp => {
-                                const a = attendanceFor(emp.id);
-                                const status = a?.status || 'Absent';
-                                return (
-                                    <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                                        <td className="px-5 py-2.5">
-                                            <p className="font-medium text-slate-800 dark:text-slate-200">{emp.first_name} {emp.last_name}</p>
-                                            <p className="text-xs text-slate-400">{emp.employee_id}</p>
-                                        </td>
-                                        <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400">{emp.shift?.name || '—'}</td>
-                                        <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400">{a?.check_in?.substring(0, 5) || '—'}</td>
-                                        <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400">{a?.check_out?.substring(0, 5) || '—'}</td>
-                                        <td className="px-5 py-2.5">
-                                            <span className={`inline-block px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-sm border-l-4 ${STATUS_STYLES[status]}`}>{status}</span>
-                                        </td>
-                                        <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400">{a?.late_minutes > 0 ? a.late_minutes : '—'}</td>
-                                        <td className="px-5 py-2.5 text-right">
-                                            <button onClick={() => openModal(emp)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-500/30 rounded-sm hover:bg-blue-50 dark:hover:bg-blue-500/10 mr-1.5">
-                                                <FiEdit2 className="h-3 w-3" /> {a ? 'Edit' : 'Mark'}
-                                            </button>
-                                            {a && (
-                                                <button onClick={() => handleDelete(a)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-400 border border-red-300 dark:border-red-500/30 rounded-sm hover:bg-red-50 dark:hover:bg-red-500/10">
-                                                    <FiTrash2 className="h-3 w-3" />
+                    {/* টেবিল সবসময় টেবিল আকারেই থাকে; জায়গা কম পড়লে শুধু horizontal scroll হবে,
+                        মোবাইলেও Action বাটন কলাম হিসেবে ডানপাশেই থাকবে, নিচে ভাঙবে না। */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-[780px] text-sm">
+                            <thead className="bg-slate-50 dark:bg-slate-900/60 text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                <tr>
+                                    <th className="text-left px-5 py-2.5">Employee</th>
+                                    <th className="text-left px-5 py-2.5">Shift</th>
+                                    <th className="text-left px-5 py-2.5">Check In</th>
+                                    <th className="text-left px-5 py-2.5">Check Out</th>
+                                    <th className="text-left px-5 py-2.5">Status</th>
+                                    <th className="text-left px-5 py-2.5">Late (min)</th>
+                                    <th className="text-right px-5 py-2.5">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {filteredEmployees.map(emp => {
+                                    const a = attendanceFor(emp.id);
+                                    const status = a?.status || 'Absent';
+                                    return (
+                                        <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                            <td className="px-5 py-2.5 whitespace-nowrap">
+                                                <p className="font-medium text-slate-800 dark:text-slate-200">{emp.first_name} {emp.last_name}</p>
+                                                <p className="text-xs text-slate-400">{emp.employee_id}</p>
+                                            </td>
+                                            <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400 whitespace-nowrap">{emp.shift?.name || '—'}</td>
+                                            <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400 whitespace-nowrap">{a?.check_in?.substring(0, 5) || '—'}</td>
+                                            <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400 whitespace-nowrap">{a?.check_out?.substring(0, 5) || '—'}</td>
+                                            <td className="px-5 py-2.5 whitespace-nowrap">
+                                                <span className={`inline-block px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-sm border-l-4 ${STATUS_STYLES[status]}`}>{status}</span>
+                                            </td>
+                                            <td className="px-5 py-2.5 text-slate-600 dark:text-slate-400 whitespace-nowrap">{a?.late_minutes > 0 ? a.late_minutes : '—'}</td>
+                                            <td className="px-5 py-2.5 text-right whitespace-nowrap">
+                                                <button onClick={() => openModal(emp)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-500/30 rounded-sm hover:bg-blue-50 dark:hover:bg-blue-500/10 mr-1.5">
+                                                    <FiEdit2 className="h-3 w-3" /> {a ? 'Edit' : 'Mark'}
                                                 </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                            {filteredEmployees.length === 0 && (
-                                <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-400 text-sm">No employees match this filter.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
+                                                {a && (
+                                                    <button onClick={() => handleDelete(a)} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-400 border border-red-300 dark:border-red-500/30 rounded-sm hover:bg-red-50 dark:hover:bg-red-500/10">
+                                                        <FiTrash2 className="h-3 w-3" />
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {filteredEmployees.length === 0 && (
+                                    <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-400 text-sm">No employees match this filter.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 

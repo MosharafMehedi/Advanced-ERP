@@ -3,11 +3,13 @@ import { useState, useEffect } from 'react';
 import Sidebar from '@/Components/Sidebar';
 import Header from '@/Components/Header';
 import Footer from '@/Components/Footer';
+import Swal from 'sweetalert2';
 
 export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
+    const { auth, flash } = usePage().props;
+    const user = auth.user;
     const [showingSidebar, setShowingSidebar] = useState(false);
-    
+
     const [isCollapsed, setIsCollapsed] = useState(() => {
         try { return localStorage.getItem('sidebar_collapsed') === 'true'; }
         catch { return false; }
@@ -22,6 +24,46 @@ export default function AuthenticatedLayout({ header, children }) {
         window.addEventListener('sidebar_toggle', handleStorageChange);
         return () => window.removeEventListener('sidebar_toggle', handleStorageChange);
     }, []);
+
+    // Global Flash Message Handler — যেকোনো পেজ থেকে redirect()->with('success'/'error'/...)
+    // করলেই এখানে ধরে SweetAlert2 popup দেখানো হবে। প্রতিটা পেজে আলাদা করে বসানোর দরকার নেই।
+    useEffect(() => {
+        if (flash?.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: flash.success,
+                timer: 2500,
+                showConfirmButton: false,
+            });
+        }
+
+        if (flash?.error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: flash.error,
+            });
+        }
+
+        if (flash?.warning) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Warning',
+                text: flash.warning,
+            });
+        }
+
+        if (flash?.info) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Info',
+                text: flash.info,
+                timer: 2500,
+                showConfirmButton: false,
+            });
+        }
+    }, [flash]);
 
     return (
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-300 flex flex-col antialiased">
@@ -46,7 +88,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
                 {/* Main Content Area */}
                 <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out">
-                    
+
                     {header && (
                         <div className="bg-white shadow-sm dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 transition-colors duration-300">
                             <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link,usePage } from "@inertiajs/react";
-import { FiGrid, FiUsers, FiX, FiChevronLeft,FiSettings,FiLayers,FiMapPin,FiClock } from "react-icons/fi";
+import { FiGrid, FiUsers, FiX, FiChevronLeft,FiSettings,FiLayers,FiMapPin,FiClock,FiCalendar } from "react-icons/fi";
 import { HiOutlineIdentification } from "react-icons/hi2";
 import { FaMoneyBill } from "react-icons/fa";
 
@@ -46,6 +46,7 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                 { id: "payrolls", name: "Payrolls", route: "payrolls.index", activePrefix: "payrolls", icon: FaMoneyBill, badge: null },
                 { id: "attendances", name: "Attendances", route: "attendances.index", activePrefix: "attendances", icon: FiClock, badge: null },
                 { id: "shifts", name: "Shifts", route: "shifts.index", activePrefix: "shifts", icon: FiClock, badge: null },
+                { id: "holidays", name: "Holidays", route: "holidays.index", activePrefix: "holidays", icon: FiCalendar, badge: null },
 
             ],
         },

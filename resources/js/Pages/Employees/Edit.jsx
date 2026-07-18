@@ -22,7 +22,6 @@ const PanelHeader = ({ children }) => (
     </div>
 );
 
-// বিদ্যমান ফাইলের লিঙ্ক দেখানোর ছোট হেল্পার
 const ExistingFileLink = ({ url, label = 'View current file' }) => {
     if (!url) return null;
     return (
@@ -38,7 +37,7 @@ const ExistingFileLink = ({ url, label = 'View current file' }) => {
 };
 
 export default function Edit({ employee, branches, departments, designations, managers, users }) {
-    const { data, setData, put, processing, errors } = useForm({
+    const { data, setData, post, processing, errors } = useForm({
         // Personal Information
         first_name: employee.first_name || '',
         last_name: employee.last_name || '',
@@ -79,18 +78,13 @@ export default function Edit({ employee, branches, departments, designations, ma
         basic_salary: employee.basic_salary ?? '0',
         gross_salary: employee.gross_salary ?? '0',
         cv_file: null,
-
-        // Laravel এ ফাইল সহ PUT রিকোয়েস্ট পাঠাতে Inertia এর জন্য method spoofing দরকার
         _method: 'put',
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        post_or_put();
-    };
 
-    const post_or_put = () => {
-        put(route('employees.update', employee.id), {
+        post(route('employees.update', employee.id), {
             forceFormData: true,
         });
     };

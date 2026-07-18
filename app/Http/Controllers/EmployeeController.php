@@ -161,13 +161,14 @@ class EmployeeController extends Controller
         ]);
     }
 
-    public function update(Request $request, Employee $employee)
+        public function update(Request $request, Employee $employee)
     {
         $request->merge([
             'has_login_access' => filter_var($request->has_login_access, FILTER_VALIDATE_BOOLEAN),
         ]);
-
+ 
         $validated = $request->validate([
+            // employee_id validation ইচ্ছাকৃতভাবে বাদ — এটি আপডেট করা যাবে না
             'first_name'                => 'required|string|max:100',
             'last_name'                 => 'nullable|string|max:100',
             'gender'                    => 'required|in:Male,Female,Other',
@@ -187,7 +188,7 @@ class EmployeeController extends Controller
             'emergency_contact_name'    => 'nullable|string|max:100',
             'emergency_contact_phone'   => 'nullable|string|max:20',
             'emergency_contact_relation'=> 'nullable|string|max:50',
-
+ 
             'branch_id'                 => 'nullable|exists:branches,id',
             'department_id'             => 'nullable|exists:departments,id',
             'designation_id'            => 'nullable|exists:designations,id',
@@ -197,25 +198,27 @@ class EmployeeController extends Controller
             'confirmation_date'         => 'nullable|date',
             'termination_date'          => 'nullable|date',
             'status'                    => 'required|in:0,1,2,3',
-
+ 
             'has_login_access'          => 'required|boolean',
             'user_id'                   => 'nullable|exists:users,id|unique:employees,user_id,' . $employee->id,
             'basic_salary'              => 'nullable|numeric|min:0',
             'gross_salary'              => 'nullable|numeric|min:0',
-
+ 
             'profile_photo'             => 'nullable|image|max:2048',
             'nid_file'                  => 'nullable|mimes:jpeg,png,jpg,pdf|max:3072',
             'cv_file'                   => 'nullable|mimes:pdf,doc,docx|max:5120',
         ]);
-
+ 
         $data = $validated;
+        // employee_id ইচ্ছাকৃতভাবে $data তে সেট করা হচ্ছে না — DB এর বিদ্যমান মান অপরিবর্তিত থাকবে
         $data['full_name'] = trim($request->first_name . ' ' . $request->last_name);
         $data['updated_by'] = Auth::id();
-
+ 
+        // আপডেট এ অটো ইউজার হ্যান্ডেলিং
         if ($data['has_login_access'] && empty($data['user_id'])) {
             $email = $request->email ?? strtolower($employee->employee_id) . '@company.com';
             $existingUser = User::where('email', $email)->first();
-
+ 
             if (!$existingUser) {
                 $newUser = User::create([
                     'name' => $data['full_name'],
@@ -227,26 +230,38 @@ class EmployeeController extends Controller
                 $data['user_id'] = $existingUser->id;
             }
         } elseif (!$data['has_login_access']) {
-            $data['user_id'] = null;
+            $data['user_id'] = null; // এক্সেস ফলস করলে রিলেশন ডিটাচ হবে
         }
-
+ 
+        // ফাইল রিপ্লেসমেন্ট লজিক
+        // নতুন ফাইল আপলোড হলে replace করা হচ্ছে; না হলে $data থেকে key-টাই বাদ দেওয়া হচ্ছে
+        // যাতে validated array এর null ভ্যালু ->update() কলে গিয়ে বিদ্যমান ফাইল পাথ মুছে না দেয়।
         if ($request->hasFile('profile_photo')) {
             if ($employee->profile_photo) Storage::disk('public')->delete($employee->profile_photo);
             $data['profile_photo'] = $request->file('profile_photo')->store('employees/photos', 'public');
+        } else {
+            unset($data['profile_photo']);
         }
+ 
         if ($request->hasFile('nid_file')) {
             if ($employee->nid_file) Storage::disk('public')->delete($employee->nid_file);
             $data['nid_file'] = $request->file('nid_file')->store('employees/documents', 'public');
+        } else {
+            unset($data['nid_file']);
         }
+ 
         if ($request->hasFile('cv_file')) {
             if ($employee->cv_file) Storage::disk('public')->delete($employee->cv_file);
             $data['cv_file'] = $request->file('cv_file')->store('employees/documents', 'public');
+        } else {
+            unset($data['cv_file']);
         }
-
+ 
         $employee->update($data);
-
+ 
         return redirect()->route('employees.index')->with('success', 'Employee profile updated successfully.');
     }
+
 
     public function destroy(Employee $employee)
     {
