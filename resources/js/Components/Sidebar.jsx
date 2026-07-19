@@ -47,6 +47,8 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                 { id: "attendances", name: "Attendances", route: "attendances.index", activePrefix: "attendances", icon: FiClock, badge: null },
                 { id: "shifts", name: "Shifts", route: "shifts.index", activePrefix: "shifts", icon: FiClock, badge: null },
                 { id: "holidays", name: "Holidays", route: "holidays.index", activePrefix: "holidays", icon: FiCalendar, badge: null },
+                { id: "leave-types", name: "Leave Types", route: "leave-types.index", activePrefix: "leave-types", icon: FiCalendar, badge: null },
+                { id: "leave-requests", name: "Leave Requests", route: "leave-requests.index", activePrefix: "leave-requests", icon: FiCalendar, badge: null },
 
             ],
         },
