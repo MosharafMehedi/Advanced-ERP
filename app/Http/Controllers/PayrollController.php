@@ -66,24 +66,25 @@ class PayrollController extends Controller
 
     /**
      * POST /payrolls
+     *
+     * NOTE: total_days/working_days/present_days/absent_days/leave_with_pay/
+     * leave_without_pay/late_days are NO LONGER trusted from the request —
+     * PayrollService::calculateSalary() pulls these directly and authoritatively
+     * from AttendanceService::monthlySummary(). They're accepted here only so
+     * the frontend's read-only preview doesn't break form submission; nothing
+     * from these fields is actually used in the salary math anymore.
      */
     public function store(Request $request)
     {
         $request->validate([
-            'employee_id'       => 'required|exists:employees,id',
-            'year'              => 'required|integer|min:2020|max:2050',
-            'month'             => 'required|integer|min:1|max:12',
-            'total_days'        => 'required|integer|min:28|max:31',
-            'working_days'      => 'required|integer|min:0',
-            'present_days'      => 'required|integer|min:0',
-            'absent_days'       => 'nullable|integer|min:0',
-            'leave_with_pay'    => 'nullable|integer|min:0',
-            'leave_without_pay' => 'nullable|integer|min:0',
-            'late_days'         => 'nullable|integer|min:0',
-            'bonus'             => 'nullable|numeric|min:0',
-            'arrears'           => 'nullable|numeric|min:0',
-            'fine'              => 'nullable|numeric|min:0',
-            'loan_deduction'    => 'nullable|numeric|min:0',
+            'employee_id'    => 'required|exists:employees,id',
+            'year'           => 'required|integer|min:2020|max:2050',
+            'month'          => 'required|integer|min:1|max:12',
+            'bonus'          => 'nullable|numeric|min:0',
+            'arrears'        => 'nullable|numeric|min:0',
+            'fine'           => 'nullable|numeric|min:0',
+            'loan_deduction' => 'nullable|numeric|min:0',
+            'force_negative' => 'nullable|boolean',
         ]);
 
         try {
@@ -93,7 +94,7 @@ class PayrollController extends Controller
                 $employee,
                 $request->year,
                 $request->month,
-                $request->all()
+                $request->only(['bonus', 'arrears', 'fine', 'loan_deduction', 'force_negative'])
             );
 
             return redirect()->route('payrolls.index')
@@ -148,7 +149,22 @@ class PayrollController extends Controller
                 'internet_allowance'        => 'nullable|numeric|min:0',
                 'provident_fund_percentage' => 'nullable|numeric|min:0|max:100',
                 'tax_deduction_fixed'       => 'nullable|numeric|min:0',
+                'late_penalty_unit_days'    => 'nullable|integer|min:1|max:31',
             ]);
+
+            // চার-উপাদানের percentage sum ১০০% এর বেশি হলে ঠিক PayrollService
+            // এর মতোই এখানেও আগেভাগে আটকে দেওয়া — save করার সময়েই ধরা পড়বে,
+            // salary generate করার সময় exception এ গিয়ে ঠোকা লাগবে না।
+            $percentageSum = (float) $request->basic_percentage
+                + (float) $request->house_rent_percentage
+                + (float) $request->medical_percentage
+                + (float) $request->conveyance_percentage;
+
+            if ($percentageSum > 100.01) {
+                return redirect()->back()->withInput()->withErrors([
+                    'error' => sprintf('Basic + House Rent + Medical + Conveyance percentages sum to %.2f%%, which exceeds 100%%. Please adjust.', $percentageSum),
+                ]);
+            }
 
             SalaryStructure::updateOrCreate(
                 ['employee_id' => $request->employee_id],

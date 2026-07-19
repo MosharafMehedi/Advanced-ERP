@@ -9,6 +9,7 @@ use App\Models\SalaryStructure;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Carbon\Carbon;
 use Exception;
 
 class PayrollService
@@ -89,13 +90,36 @@ class PayrollService
             }
 
             $gross = (float) $employee->gross_salary;
-            $perDayRate = $totalDays > 0 ? $gross / $totalDays : 0;
 
-            // --- Earnings ---
-            $basic      = round($gross * $structure->basic_percentage / 100, 2);
-            $houseRent  = round($gross * $structure->house_rent_percentage / 100, 2);
-            $medical    = round($gross * $structure->medical_percentage / 100, 2);
-            $conveyance = round($gross * $structure->conveyance_percentage / 100, 2);
+            // Two different denominators, on purpose:
+            // - $calendarDaysInMonth: the real number of days in this month (e.g. 31 for
+            //   July), used to derive a standard per-day rate.
+            // - $totalDays: the days the employee was actually EMPLOYED this month
+            //   (already clipped to joining_date/resignation_date by monthlySummary()).
+            // Earnings must be scaled by $totalDays/$calendarDaysInMonth — using $totalDays
+            // as the denominator of perDayRate (the old bug) makes the daily rate itself
+            // shrink to compensate, so a mid-month joiner still ends up with a FULL
+            // month's basic/HRA/medical/conveyance instead of a prorated share.
+            $calendarDaysInMonth = Carbon::createFromDate($year, $month, 1)->daysInMonth;
+            $perDayRate = $calendarDaysInMonth > 0 ? $gross / $calendarDaysInMonth : 0;
+
+            // The prorated gross this employee actually earned this month —
+            // full $gross only when totalDays == calendarDaysInMonth (i.e. they
+            // were employed the whole month); a fair fraction otherwise.
+            $proratedGross = round($perDayRate * $totalDays, 2);
+
+            // --- Earnings — computed off the PRORATED gross, not the full monthly gross ---
+            $basic      = round($proratedGross * $structure->basic_percentage / 100, 2);
+            $houseRent  = round($proratedGross * $structure->house_rent_percentage / 100, 2);
+            $medical    = round($proratedGross * $structure->medical_percentage / 100, 2);
+            $conveyance = round($proratedGross * $structure->conveyance_percentage / 100, 2);
+
+            // Fixed monthly allowances (mobile/internet/other) are prorated the same way —
+            // a mid-month joiner shouldn't get a full month's mobile allowance either.
+            $prorationRatio = $calendarDaysInMonth > 0 ? $totalDays / $calendarDaysInMonth : 0;
+            $fixedAllowance    = round((float) $structure->fixed_allowance * $prorationRatio, 2);
+            $mobileAllowance   = round((float) $structure->mobile_allowance * $prorationRatio, 2);
+            $internetAllowance = round((float) $structure->internet_allowance * $prorationRatio, 2);
 
             $earnings = [
                 ['name' => 'Basic Salary', 'amount' => $basic],
@@ -103,14 +127,14 @@ class PayrollService
                 ['name' => 'Medical Allowance', 'amount' => $medical],
                 ['name' => 'Conveyance Allowance', 'amount' => $conveyance],
             ];
-            if ($structure->fixed_allowance > 0) {
-                $earnings[] = ['name' => 'Fixed Allowance', 'amount' => (float) $structure->fixed_allowance];
+            if ($fixedAllowance > 0) {
+                $earnings[] = ['name' => 'Fixed Allowance', 'amount' => $fixedAllowance];
             }
-            if ($structure->mobile_allowance > 0) {
-                $earnings[] = ['name' => 'Mobile Allowance', 'amount' => (float) $structure->mobile_allowance];
+            if ($mobileAllowance > 0) {
+                $earnings[] = ['name' => 'Mobile Allowance', 'amount' => $mobileAllowance];
             }
-            if ($structure->internet_allowance > 0) {
-                $earnings[] = ['name' => 'Internet Allowance', 'amount' => (float) $structure->internet_allowance];
+            if ($internetAllowance > 0) {
+                $earnings[] = ['name' => 'Internet Allowance', 'amount' => $internetAllowance];
             }
             if ($bonus > 0) {
                 $earnings[] = ['name' => 'Bonus', 'amount' => $bonus];
