@@ -1,8 +1,281 @@
 import { useState, useEffect } from "react";
-import { Link,usePage } from "@inertiajs/react";
-import { FiGrid, FiUsers, FiX, FiChevronLeft,FiSettings,FiLayers,FiMapPin,FiClock,FiCalendar } from "react-icons/fi";
+import { Link, usePage } from "@inertiajs/react";
+import { FiGrid, FiUsers, FiX, FiChevronLeft, FiSettings, FiLayers, FiMapPin, FiClock, FiCalendar, FiFile } from "react-icons/fi";
 import { HiOutlineIdentification } from "react-icons/hi2";
 import { FaMoneyBill } from "react-icons/fa";
+
+const menuGroups = [
+    {
+        label: "Overview",
+        items: [
+            { id: "dashboard", name: "Dashboard", route: "dashboard", activePrefix: "dashboard", icon: FiGrid, badge: null },
+        ],
+    },
+    {
+        label: "Management",
+        items: [
+            { id: "users", name: "Users", route: "users.index", activePrefix: "users", icon: FiUsers, badge: null },
+            { id: "settings", name: "Settings", route: "settings.index", activePrefix: "settings", icon: FiSettings, badge: null },
+            { id: "departments", name: "Departments", route: "departments.index", activePrefix: "departments", icon: FiLayers, badge: null },
+            { id: "branches", name: "Branches", route: "branches.index", activePrefix: "branches", icon: FiMapPin, badge: null },
+            { id: "designations", name: "Designations", route: "designations.index", activePrefix: "designations", icon: HiOutlineIdentification, badge: null },
+            { id: "employees", name: "Employees", route: "employees.index", activePrefix: "employees", icon: FiUsers, badge: null },
+            { id: "payrolls", name: "Payrolls", route: "payrolls.index", activePrefix: "payrolls", icon: FaMoneyBill, badge: null },
+            { id: "attendances", name: "Attendances", route: "attendances.index", activePrefix: "attendances", icon: FiClock, badge: null },
+            { id: "shifts", name: "Shifts", route: "shifts.index", activePrefix: "shifts", icon: FiClock, badge: null },
+            { id: "holidays", name: "Holidays", route: "holidays.index", activePrefix: "holidays", icon: FiCalendar, badge: null },
+            { id: "leave-types", name: "Leave Types", route: "leave-types.index", activePrefix: "leave-types", icon: FiCalendar, badge: null },
+            { id: "leave-requests", name: "Leave Requests", route: "leave-requests.index", activePrefix: "leave-requests", icon: FiCalendar, badge: null },
+            { id: "employee-documents", name: "Employee Documents", route: "employee-documents.index", activePrefix: "employee-documents", icon: FiFile, badge: null },
+        ],
+    },
+];
+
+// Moved outside Sidebar so it keeps a stable component identity across
+// re-renders (e.g. when hoveredItem changes). Previously this was defined
+// inside Sidebar(), so every re-render created a brand new component type,
+// forcing React to unmount + remount the whole subtree -> scroll reset to 0.
+function NavItem({ item, showLabel, onClick, hoveredItem, setHoveredItem }) {
+    const isActive =
+        route().current(item.route) ||
+        route().current(item.activePrefix + ".*");
+    const Icon = item.icon;
+    const isHovered = hoveredItem === item.id;
+
+    return (
+        <div
+            className="w-full"
+            style={{ position: "relative" }}
+            onMouseEnter={() => setHoveredItem(item.id)}
+            onMouseLeave={() => setHoveredItem(null)}
+        >
+            <Link
+                href={route(item.route)}
+                onClick={onClick}
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: showLabel ? "12px" : "0",
+                    padding: "8px 12px",
+                    justifyContent: showLabel ? "flex-start" : "center",
+                    borderRadius: "8px",
+                    fontSize: "13px",
+                    fontWeight: "500",
+                    marginBottom: "4px",
+                    position: "relative",
+                    transition: "all 0.2s ease",
+                    background: isActive
+                        ? "rgba(99, 102, 241, 0.2)"
+                        : isHovered ? "rgba(255, 255, 255, 0.08)" : "transparent",
+                    color: "#ffffff",
+                    textDecoration: "none",
+                    overflow: "hidden"
+                }}
+            >
+                {isActive && (
+                    <span style={{
+                        position: "absolute",
+                        left: 0,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        width: "4px",
+                        height: "18px",
+                        background: "#6366f1",
+                        borderRadius: "0 4px 4px 0",
+                    }} />
+                )}
+
+                <span style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "18px",
+                    height: "18px",
+                    flexShrink: 0,
+                    color: "#ffffff",
+                    transition: "color 0.2s",
+                }}>
+                    <Icon size={18} />
+                </span>
+
+                {showLabel && (
+                    <span style={{
+                        flex: 1,
+                        lineHeight: 1.2,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis"
+                    }}>
+                        {item.name}
+                    </span>
+                )}
+            </Link>
+
+            {!showLabel && isHovered && (
+                <div
+                    style={{
+                        position: "fixed",
+                        left: "76px",
+                        transform: "translateY(-38px)",
+                        background: "#0f172a",
+                        color: "#f8fafc",
+                        fontSize: "11px",
+                        fontWeight: "400",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                        border: "1px solid rgba(255,255,255,0.15)",
+                        whiteSpace: "nowrap",
+                        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.5)",
+                        pointerEvents: "none",
+                        zIndex: 999999
+                    }}
+                >
+                    {item.name}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function SidebarContent({ showLabels, onItemClick, hoveredItem, setHoveredItem }) {
+    return (
+        <div
+            className="sidebar-scroll"
+            style={{
+                flex: 1,
+                overflowY: "auto",
+                overflowX: "hidden",
+                padding: "8px"
+            }}
+        >
+            <style>{`
+                .sidebar-scroll {
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(255,255,255,0.15) transparent;
+                }
+                .sidebar-scroll::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .sidebar-scroll::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .sidebar-scroll::-webkit-scrollbar-thumb {
+                    background: rgba(255,255,255,0.15);
+                    border-radius: 4px;
+                }
+                .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+                    background: rgba(255,255,255,0.25);
+                }
+            `}</style>
+            {menuGroups.map((group, gi) => (
+                <div key={gi} style={{ marginBottom: "16px" }}>
+                    {gi > 0 && (
+                        <div style={{ height: "1px", background: "rgba(255,255,255,0.05)", margin: "8px 4px 12px" }} />
+                    )}
+                    {showLabels && (
+                        <p style={{
+                            fontSize: "11px",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            color: "#94a3b8",
+                            padding: "0 12px",
+                            marginBottom: "8px",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden"
+                        }}>
+                            {group.label}
+                        </p>
+                    )}
+                    {group.items.map((item, ii) => (
+                        <NavItem
+                            key={ii}
+                            item={item}
+                            showLabel={showLabels}
+                            onClick={onItemClick}
+                            hoveredItem={hoveredItem}
+                            setHoveredItem={setHoveredItem}
+                        />
+                    ))}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function UserCard({ showLabel }) {
+    const [logoutHovered, setLogoutHovered] = useState(false);
+    return (
+        <div style={{
+            flexShrink: 0,
+            padding: "12px 8px",
+            borderTop: "1px solid rgba(255,255,255,0.05)",
+            background: "#1e2e38",
+            overflow: "hidden"
+        }}>
+            <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: showLabel ? "space-between" : "center",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                background: "rgba(255,255,255,0.02)",
+                border: "1px solid rgba(255,255,255,0.04)",
+                position: "relative"
+            }}>
+                {showLabel && (
+                    <span style={{ fontSize: "13px", fontWeight: 500, color: "#ffffff", whiteSpace: "nowrap" }}>
+                        Logout
+                    </span>
+                )}
+
+                <div
+                    style={{ position: "relative" }}
+                    onMouseEnter={() => setLogoutHovered(true)}
+                    onMouseLeave={() => setLogoutHovered(false)}
+                >
+                    <Link
+                        href={route('logout')} method="post" as="button"
+                        style={{
+                            width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                            background: logoutHovered ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.1)",
+                            border: "none", cursor: "pointer",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: "#f87171", transition: "all 0.15s"
+                        }}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                    </Link>
+
+                    {!showLabel && logoutHovered && (
+                        <div
+                            style={{
+                                position: "fixed",
+                                left: "76px",
+                                transform: "translateY(-24px)",
+                                background: "#0f172a",
+                                color: "#f8fafc",
+                                fontSize: "10px",
+                                fontWeight: 500,
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                border: "1px solid rgba(255,255,255,0.15)",
+                                whiteSpace: "nowrap",
+                                zIndex: 999999,
+                            }}
+                        >
+                            Logout
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function Sidebar({ showingSidebar, setShowingSidebar }) {
     const { globalSettings } = usePage().props;
@@ -27,248 +300,6 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
         window.dispatchEvent(new Event('sidebar_toggle'));
     };
 
-    const menuGroups = [
-        {
-            label: "Overview",
-            items: [
-                { id: "dashboard", name: "Dashboard", route: "dashboard", activePrefix: "dashboard", icon: FiGrid, badge: null },
-            ],
-        },
-        {
-            label: "Management",
-            items: [
-                { id: "users", name: "Users", route: "users.index", activePrefix: "users", icon: FiUsers, badge: null },
-                { id: "settings", name: "Settings", route: "settings.index", activePrefix: "settings", icon: FiSettings, badge: null },
-                { id: "departments", name: "Departments", route: "departments.index", activePrefix: "departments", icon: FiLayers, badge: null },
-                { id: "branches", name: "Branches", route: "branches.index", activePrefix: "branches", icon: FiMapPin, badge: null },
-                { id: "designations", name: "Designations", route: "designations.index", activePrefix: "designations", icon: HiOutlineIdentification, badge: null },
-                { id: "employees", name: "Employees", route: "employees.index", activePrefix: "employees", icon: FiUsers, badge: null },
-                { id: "payrolls", name: "Payrolls", route: "payrolls.index", activePrefix: "payrolls", icon: FaMoneyBill, badge: null },
-                { id: "attendances", name: "Attendances", route: "attendances.index", activePrefix: "attendances", icon: FiClock, badge: null },
-                { id: "shifts", name: "Shifts", route: "shifts.index", activePrefix: "shifts", icon: FiClock, badge: null },
-                { id: "holidays", name: "Holidays", route: "holidays.index", activePrefix: "holidays", icon: FiCalendar, badge: null },
-                { id: "leave-types", name: "Leave Types", route: "leave-types.index", activePrefix: "leave-types", icon: FiCalendar, badge: null },
-                { id: "leave-requests", name: "Leave Requests", route: "leave-requests.index", activePrefix: "leave-requests", icon: FiCalendar, badge: null },
-
-            ],
-        },
-    ];
-
-    const NavItem = ({ item, showLabel, onClick }) => {
-        const isActive =
-            route().current(item.route) ||
-            route().current(item.activePrefix + ".*");
-        const Icon = item.icon;
-        const isHovered = hoveredItem === item.id;
-
-        return (
-            <div 
-                className="w-full"
-                style={{ position: "relative" }}
-                onMouseEnter={() => setHoveredItem(item.id)}
-                onMouseLeave={() => setHoveredItem(null)}
-            >
-                <Link
-                    href={route(item.route)}
-                    onClick={onClick}
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: showLabel ? "12px" : "0",
-                        padding: "8px 12px",
-                        justifyContent: showLabel ? "flex-start" : "center",
-                        borderRadius: "8px",
-                        fontSize: "13px",
-                        fontWeight: "500",
-                        marginBottom: "4px",
-                        position: "relative",
-                        transition: "all 0.2s ease",
-                        background: isActive 
-                            ? "rgba(99, 102, 241, 0.2)" 
-                            : isHovered ? "rgba(255, 255, 255, 0.08)" : "transparent",
-                        color: "#ffffff", 
-                        textDecoration: "none",
-                        overflow: "hidden"
-                    }}
-                >
-                    {/* Active Left Indicator Bar */}
-                    {isActive && (
-                        <span style={{
-                            position: "absolute", 
-                            left: 0,
-                            top: "50%", 
-                            transform: "translateY(-50%)",
-                            width: "4px", 
-                            height: "18px",
-                            background: "#6366f1", 
-                            borderRadius: "0 4px 4px 0",
-                        }} />
-                    )}
-
-                    {/* Icon Box */}
-                    <span style={{
-                        display: "flex", 
-                        alignItems: "center", 
-                        justifyContent: "center",
-                        width: "18px", 
-                        height: "18px", 
-                        flexShrink: 0,
-                        color: "#ffffff",
-                        transition: "color 0.2s",
-                    }}>
-                        <Icon size={18} />
-                    </span>
-
-                    {/* Label with forced single line */}
-                    {showLabel && (
-                        <span style={{ 
-                            flex: 1, 
-                            lineHeight: 1.2, 
-                            whiteSpace: "nowrap", 
-                            overflow: "hidden",
-                            textOverflow: "ellipsis"
-                        }}>
-                            {item.name}
-                        </span>
-                    )}
-                </Link>
-
-                {/* Tooltip */}
-                {!showLabel && isHovered && (
-                    <div 
-                        style={{
-                            position: "fixed",
-                            left: "76px", 
-                            transform: "translateY(-38px)", 
-                            background: "#0f172a", 
-                            color: "#f8fafc",
-                            fontSize: "11px", 
-                            fontWeight: "400",
-                            padding: "4px 8px", 
-                            borderRadius: "6px",
-                            border: "1px solid rgba(255,255,255,0.15)",
-                            whiteSpace: "nowrap", 
-                            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.5)",
-                            pointerEvents: "none",
-                            zIndex: 999999
-                        }}
-                    >
-                        {item.name}
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-    const SidebarContent = ({ showLabels, onItemClick }) => (
-        <div style={{ 
-            flex: 1, 
-            overflowY: "auto", 
-            overflowX: "hidden",
-            padding: "8px" 
-        }}>
-            {menuGroups.map((group, gi) => (
-                <div key={gi} style={{ marginBottom: "16px" }}>
-                    {gi > 0 && (
-                        <div style={{ height: "1px", background: "rgba(255,255,255,0.05)", margin: "8px 4px 12px" }} />
-                    )}
-                    {showLabels && (
-                        <p style={{
-                            fontSize: "11px", 
-                            fontWeight: 600,
-                            textTransform: "uppercase", 
-                            letterSpacing: "0.05em",
-                            color: "#94a3b8", 
-                            padding: "0 12px", 
-                            marginBottom: "8px",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden"
-                        }}>
-                            {group.label}
-                        </p>
-                    )}
-                    {group.items.map((item, ii) => (
-                        <NavItem key={ii} item={item} showLabel={showLabels} onClick={onItemClick} />
-                    ))}
-                </div>
-            ))}
-        </div>
-    );
-
-    const UserCard = ({ showLabel }) => {
-        const [logoutHovered, setLogoutHovered] = useState(false);
-        return (
-            <div style={{
-                flexShrink: 0, 
-                padding: "12px 8px",
-                borderTop: "1px solid rgba(255,255,255,0.05)",
-                background: "#1e2e38",
-                overflow: "hidden"
-            }}>
-                <div style={{
-                    display: "flex", 
-                    alignItems: "center",
-                    justifyContent: showLabel ? "space-between" : "center",
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    background: "rgba(255,255,255,0.02)",
-                    border: "1px solid rgba(255,255,255,0.04)",
-                    position: "relative"
-                }}>
-                    {showLabel && (
-                        <span style={{ fontSize: "13px", fontWeight: 500, color: "#ffffff", whiteSpace: "nowrap" }}>
-                            Logout
-                        </span>
-                    )}
-
-                    <div 
-                        style={{ position: "relative" }}
-                        onMouseEnter={() => setLogoutHovered(true)}
-                        onMouseLeave={() => setLogoutHovered(false)}
-                    >
-                        <Link
-                            href={route('logout')} method="post" as="button"
-                            style={{
-                                width: 28, height: 28, borderRadius: 6, flexShrink: 0,
-                                background: logoutHovered ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.1)", 
-                                border: "none", cursor: "pointer",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                color: "#f87171", transition: "all 0.15s"
-                            }}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                                <polyline points="16 17 21 12 16 7" />
-                                <line x1="21" y1="12" x2="9" y2="12" />
-                            </svg>
-                        </Link>
-
-                        {!showLabel && logoutHovered && (
-                            <div 
-                                style={{
-                                    position: "fixed",
-                                    left: "76px", 
-                                    transform: "translateY(-24px)",
-                                    background: "#0f172a", 
-                                    color: "#f8fafc",
-                                    fontSize: "10px", 
-                                    fontWeight: 500,
-                                    padding: "4px 8px", 
-                                    borderRadius: "6px",
-                                    border: "1px solid rgba(255,255,255,0.15)",
-                                    whiteSpace: "nowrap", 
-                                    zIndex: 999999,
-                                }}
-                            >
-                                Logout
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <>
             {/* ── Desktop Sidebar ── */}
@@ -279,11 +310,10 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                     background: "#1e2e38",
                     borderRight: "1px solid rgba(255,255,255,0.06)",
                     transition: "width 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                    overflow: "visible", 
-                    zIndex: 40 
+                    overflow: "visible",
+                    zIndex: 40
                 }}
             >
-                {/* Collapse Button Header */}
                 <div style={{
                     display: "flex",
                     justifyContent: collapsed ? "center" : "flex-end",
@@ -314,7 +344,12 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                     </button>
                 </div>
 
-                <SidebarContent showLabels={!collapsed} onItemClick={undefined} />
+                <SidebarContent
+                    showLabels={!collapsed}
+                    onItemClick={undefined}
+                    hoveredItem={hoveredItem}
+                    setHoveredItem={setHoveredItem}
+                />
                 <UserCard showLabel={!collapsed} />
             </aside>
 
@@ -378,7 +413,12 @@ export default function Sidebar({ showingSidebar, setShowingSidebar }) {
                         </button>
                     </div>
 
-                    <SidebarContent showLabels={true} onItemClick={() => setShowingSidebar(false)} />
+                    <SidebarContent
+                        showLabels={true}
+                        onItemClick={() => setShowingSidebar(false)}
+                        hoveredItem={hoveredItem}
+                        setHoveredItem={setHoveredItem}
+                    />
                     <UserCard showLabel={true} />
                 </aside>
             </div>

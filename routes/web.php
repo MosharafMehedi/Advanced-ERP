@@ -5,6 +5,7 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeDocumentController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\LeaveRequestController;
 use App\Http\Controllers\LeaveTypeController;
@@ -32,7 +33,7 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    
+
     // User CRUD resource route
     Route::resource('users', UserController::class);
     Route::resource('settings', SettingController::class);
@@ -46,6 +47,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('holidays', HolidayController::class);
     Route::resource('leave-types', LeaveTypeController::class);
     Route::resource('leave-requests', LeaveRequestController::class);
+    Route::resource('employee-documents', EmployeeDocumentController::class)
+        ->except(['create', 'edit']);
+
+    Route::get('employee-documents/{document}/download', [EmployeeDocumentController::class, 'download'])
+        ->name('employee-documents.download');
+    Route::get('employee-documents/{document}/view', [EmployeeDocumentController::class, 'view'])
+        ->name('employee-documents.view');
 
     Route::post('attendances/check-in', [AttendanceController::class, 'checkIn'])->name('attendances.checkIn');
     Route::post('attendances/check-out', [AttendanceController::class, 'checkOut'])->name('attendances.checkOut');
@@ -54,7 +62,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('leave-requests/{leaveRequest}/manager-action', [LeaveRequestController::class, 'managerAction'])->name('leave-requests.managerAction');
     Route::put('leave-requests/{leaveRequest}/hr-action', [LeaveRequestController::class, 'hrAction'])->name('leave-requests.hrAction');
     Route::put('leave-requests/{leaveRequest}/cancel', [LeaveRequestController::class, 'cancel'])->name('leave-requests.cancel');
-
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

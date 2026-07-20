@@ -95,8 +95,13 @@ class Employee extends Model
     }
 
 
-public function shift(): BelongsTo
-{
-    return $this->belongsTo(Shift::class);
-}
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
+    public function documents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(EmployeeDocument::class);
+    }
 }
