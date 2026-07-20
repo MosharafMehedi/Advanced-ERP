@@ -1,35 +1,41 @@
 import React from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm, Link, usePage } from '@inertiajs/react';
-import { 
-    FiArrowLeft, FiSave, FiUser, FiCalendar, FiClock, 
+import Swal from 'sweetalert2';
+import {
+    FiArrowLeft, FiSave, FiUser, FiCalendar, FiClock,
     FiDollarSign, FiPlus, FiX, FiCheckCircle, FiAlertCircle,
-    FiBriefcase, FiUsers
+    FiBriefcase, FiUsers, FiLock
 } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
+
+function swalTheme() {
+    const isDark = document.documentElement.classList.contains('dark');
+    return { background: isDark ? '#0f172a' : '#ffffff', color: isDark ? '#f1f5f9' : '#0f172a' };
+}
 
 export default function Create({ employees }) {
     const { errors } = usePage().props;
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
 
-    const { data, setData, post, processing } = useForm({
+    const { data, setData, post, transform, processing } = useForm({
         employee_id: '',
         year: currentYear,
         month: currentMonth,
-        total_days: 30,
-        working_days: 22,
-        present_days: 22,
-        absent_days: 0,
-        leave_with_pay: 0,
-        leave_without_pay: 0,
-        late_days: 0,
         bonus: 0,
         arrears: 0,
         fine: 0,
         loan_deduction: 0,
     });
 
+    // এই ৭টা ফিল্ড এখন শুধু preview — PayrollService সরাসরি AttendanceService থেকে
+    // এই সংখ্যাগুলো নিজে টেনে নেয়, ফর্মে যা লেখা থাকুক না কেন সেটা ব্যাকএন্ডে
+    // ব্যবহার হয় না। তাই এগুলো স্থানীয় state এ রাখা হচ্ছে, ফর্মের data তে না।
+    const [attendancePreview, setAttendancePreview] = useState({
+        total_days: null, working_days: null, present_days: null, absent_days: null,
+        leave_with_pay: null, leave_without_pay: null, late_days: null,
+    });
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [attendanceLoaded, setAttendanceLoaded] = useState(false);
     const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -43,8 +49,8 @@ export default function Create({ employees }) {
         }
     }, [data.employee_id]);
 
-    // Auto-fill attendance fields from the Attendance module whenever
-    // employee/year/month is selected — saves HR from typing these by hand.
+    // শুধু preview এর জন্য fetch — এখন আর ফর্ম ডেটার মধ্যে বসানো হচ্ছে না,
+    // যাতে ইউজার ভুল করে এটা এডিট করে ভাবতে না পারেন যে এটা প্রভাব ফেলবে।
     useEffect(() => {
         if (!data.employee_id || !data.year || !data.month) {
             setAttendanceLoaded(false);
@@ -55,31 +61,57 @@ export default function Create({ employees }) {
         fetch(route('attendances.summary', [data.employee_id, data.year, data.month]))
             .then(res => res.ok ? res.json() : Promise.reject(res))
             .then(summary => {
-                setData(prev => ({
-                    ...prev,
-                    total_days: summary.total_days,
-                    working_days: summary.working_days,
-                    present_days: summary.present_days,
-                    absent_days: summary.absent_days,
-                    leave_with_pay: summary.leave_with_pay,
-                    leave_without_pay: summary.leave_without_pay,
-                    late_days: summary.late_days,
-                }));
+                setAttendancePreview(summary);
                 setAttendanceLoaded(true);
             })
             .catch(() => setAttendanceLoaded(false))
             .finally(() => setAttendanceLoading(false));
     }, [data.employee_id, data.year, data.month]);
 
+    const submitPayload = (forceNegative = false) => {
+        // transform() injects force_negative into the outgoing payload at
+        // submit time — safer than setData()+post() back-to-back, since
+        // setData's state update wouldn't be reflected in the very next line.
+        transform((formData) => ({ ...formData, force_negative: forceNegative }));
+        post(route('payrolls.store'), {
+            onError: (errs) => handleServerError(errs),
+        });
+    };
+
+    const handleServerError = (errs) => {
+        const message = errs.error || '';
+        // Service নেগেটিভ net payable হলে নির্দিষ্ট শব্দ সহ exception থ্রো করে —
+        // সেটা দেখলে HR কে জিজ্ঞেস করে force_negative দিয়ে আবার পাঠানোর সুযোগ দিই।
+        if (message.includes('force_negative')) {
+            Swal.fire({
+                title: 'Net payable would be negative',
+                text: message.replace(', or resubmit with force_negative to proceed anyway.', ''),
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Proceed anyway',
+                cancelButtonText: 'Let me fix it',
+                ...swalTheme(),
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitPayload(true);
+                }
+            });
+        }
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route('payrolls.store'));
+        submitPayload(false);
     };
 
     const getMonthName = (monthNum) => {
         if (!monthNum) return '';
         return new Date(2000, parseInt(monthNum) - 1).toLocaleString('default', { month: 'long' });
     };
+
+    const previewBox = "w-full text-sm bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-sm py-2 px-3 text-slate-500 dark:text-slate-400 cursor-not-allowed";
 
     return (
         <AuthenticatedLayout
@@ -115,7 +147,7 @@ export default function Create({ employees }) {
                     </div>
 
                     {/* Error messages */}
-                    {errors.error && (
+                    {errors.error && !errors.error.includes('force_negative') && (
                         <div className="mb-4 p-3 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-l-4 border-red-600 rounded-sm text-sm flex items-center gap-2">
                             <FiAlertCircle className="h-4 w-4 shrink-0" />
                             <span>{errors.error}</span>
@@ -222,111 +254,50 @@ export default function Create({ employees }) {
                                 )}
                             </div>
 
-                            {/* Attendance Section */}
+                            {/* Attendance Section — READ-ONLY PREVIEW */}
                             <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-                                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+                                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-2">
                                     <FiClock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                     Attendance Details
                                     {attendanceLoading && (
                                         <span className="text-[11px] font-normal text-slate-400 dark:text-slate-500">Loading from Attendance…</span>
                                     )}
-                                    {!attendanceLoading && attendanceLoaded && (
-                                        <span className="inline-flex items-center gap-1 text-[11px] font-normal text-emerald-600 dark:text-emerald-400">
-                                            <FiCheckCircle className="h-3 w-3" /> Auto-filled from Attendance — you can still adjust below
-                                        </span>
-                                    )}
                                 </h3>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-4 flex items-center gap-1">
+                                    <FiLock className="h-3 w-3" />
+                                    Read-only — pulled directly from the Attendance module and cannot be overridden here. Fix the underlying attendance records if these look wrong.
+                                </p>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                                            Total Days
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={data.total_days}
-                                            onChange={e => setData('total_days', e.target.value)}
-                                            className="w-full text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm py-2 px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-300 transition-colors"
-                                            min="1"
-                                            max="31"
-                                        />
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Total Days</label>
+                                        <input type="text" readOnly disabled value={attendancePreview.total_days ?? '—'} className={previewBox} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                                            Working Days
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={data.working_days}
-                                            onChange={e => setData('working_days', e.target.value)}
-                                            className="w-full text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm py-2 px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-300 transition-colors"
-                                            min="0"
-                                            max="31"
-                                        />
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Working Days</label>
+                                        <input type="text" readOnly disabled value={attendancePreview.working_days ?? '—'} className={previewBox} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                                            Present Days
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={data.present_days}
-                                            onChange={e => setData('present_days', e.target.value)}
-                                            className="w-full text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm py-2 px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-300 transition-colors"
-                                            min="0"
-                                            max="31"
-                                        />
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Present Days</label>
+                                        <input type="text" readOnly disabled value={attendancePreview.present_days ?? '—'} className={previewBox} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                                            Absent Days
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={data.absent_days}
-                                            onChange={e => setData('absent_days', e.target.value)}
-                                            className="w-full text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm py-2 px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-300 transition-colors"
-                                            min="0"
-                                            max="31"
-                                        />
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Absent Days</label>
+                                        <input type="text" readOnly disabled value={attendancePreview.absent_days ?? '—'} className={previewBox} />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-4 mt-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                                            Leave With Pay
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={data.leave_with_pay}
-                                            onChange={e => setData('leave_with_pay', e.target.value)}
-                                            className="w-full text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm py-2 px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-300 transition-colors"
-                                            min="0"
-                                        />
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Leave With Pay</label>
+                                        <input type="text" readOnly disabled value={attendancePreview.leave_with_pay ?? '—'} className={previewBox} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                                            Leave Without Pay
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={data.leave_without_pay}
-                                            onChange={e => setData('leave_without_pay', e.target.value)}
-                                            className="w-full text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm py-2 px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-300 transition-colors"
-                                            min="0"
-                                        />
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Leave Without Pay</label>
+                                        <input type="text" readOnly disabled value={attendancePreview.leave_without_pay ?? '—'} className={previewBox} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                                            Late Present Days
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={data.late_days}
-                                            onChange={e => setData('late_days', e.target.value)}
-                                            className="w-full text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm py-2 px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-300 transition-colors"
-                                            min="0"
-                                        />
+                                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Late Days</label>
+                                        <input type="text" readOnly disabled value={attendancePreview.late_days ?? '—'} className={previewBox} />
                                     </div>
                                 </div>
                             </div>

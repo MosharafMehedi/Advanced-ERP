@@ -312,7 +312,15 @@ class AttendanceService
         $employee = Employee::findOrFail($employeeId);
 
         $monthStart = Carbon::createFromDate($year, $month, 1)->startOfDay();
-        $monthEnd = $monthStart->copy()->endOfMonth();
+        // NOTE: startOfDay() here (not endOfMonth()) is deliberate. endOfMonth()
+        // sets the time to 23:59:59.999999 — one microsecond before the next
+        // midnight, not midnight itself. Since periodStart is normalized to
+        // startOfDay() (00:00:00.000000), diffing an exact midnight against an
+        // "almost midnight" instant produces a near-integer float like
+        // 20.999999999988425 instead of a clean 21. We only ever care about
+        // whole calendar days here, so both ends of the period are normalized
+        // to startOfDay() and diffInDays() + 1 gives an exact day count.
+        $monthEnd = $monthStart->copy()->endOfMonth()->startOfDay();
 
         // Clip the period to joining_date / resignation_date so an employee
         // who joined on the 20th isn't charged for the 19 days before they

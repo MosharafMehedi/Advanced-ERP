@@ -6,7 +6,7 @@ import {
     FiArrowLeft, FiSave, FiUser, FiDollarSign, FiPercent, 
     FiHome, FiHeart, FiTruck, FiSmartphone, FiWifi,
     FiPieChart, FiUsers, FiBriefcase, FiCheckCircle,
-    FiAlertCircle, FiSearch, FiX
+    FiAlertCircle, FiSearch, FiX, FiClock
 } from 'react-icons/fi';
 
 function swalTheme() {
@@ -33,6 +33,7 @@ export default function Structure({ employees }) {
         internet_allowance: 0,
         provident_fund_percentage: 0,
         tax_deduction_fixed: 0,
+        late_penalty_unit_days: 3,
     });
 
     useEffect(() => {
@@ -59,6 +60,7 @@ export default function Structure({ employees }) {
                 internet_allowance: emp.salary_structure.internet_allowance,
                 provident_fund_percentage: emp.salary_structure.provident_fund_percentage,
                 tax_deduction_fixed: emp.salary_structure.tax_deduction_fixed,
+                late_penalty_unit_days: emp.salary_structure.late_penalty_unit_days ?? 3,
             });
         } else {
             reset();
@@ -66,8 +68,30 @@ export default function Structure({ employees }) {
         }
     };
 
+    // Live percentage-sum check so HR sees the problem before even hitting
+    // submit — PayrollController/PayrollService both reject > 100% anyway,
+    // but catching it here is a much better experience.
+    const percentageSum = (
+        parseFloat(data.basic_percentage || 0) +
+        parseFloat(data.house_rent_percentage || 0) +
+        parseFloat(data.medical_percentage || 0) +
+        parseFloat(data.conveyance_percentage || 0)
+    );
+    const percentageOverLimit = percentageSum > 100.01;
+
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        if (percentageOverLimit) {
+            Swal.fire({
+                title: 'Percentages exceed 100%',
+                text: `Basic + House Rent + Medical + Conveyance currently sum to ${percentageSum.toFixed(2)}%. Please adjust before saving.`,
+                icon: 'error',
+                ...swalTheme(),
+            });
+            return;
+        }
+
         router.put(route('payrolls.update', data.employee_id), {
             ...data,
             action: 'salary_structure'
@@ -356,9 +380,15 @@ export default function Structure({ employees }) {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-sm">
-                                                <FiAlertCircle className="inline h-3 w-3 mr-1" />
-                                                Percentages are calculated based on the employee's gross salary.
+                                            <div className={`mt-2 text-xs p-2 rounded-sm flex items-center gap-1.5 ${
+                                                percentageOverLimit
+                                                    ? 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 font-semibold'
+                                                    : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400'
+                                            }`}>
+                                                <FiAlertCircle className="h-3 w-3 shrink-0" />
+                                                {percentageOverLimit
+                                                    ? `Sum is ${percentageSum.toFixed(2)}% — exceeds 100%. This must be fixed before saving.`
+                                                    : `Sum: ${percentageSum.toFixed(2)}% of gross salary. Percentages are calculated based on the employee's gross salary.`}
                                             </div>
                                         </div>
 
@@ -443,6 +473,25 @@ export default function Structure({ employees }) {
                                                         min="0"
                                                     />
                                                 </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                                                        <FiClock className="inline h-3 w-3 mr-1" /> Late Penalty Rule
+                                                    </label>
+                                                    <div className="relative">
+                                                        <input
+                                                            type="number"
+                                                            value={data.late_penalty_unit_days}
+                                                            onChange={e => setData('late_penalty_unit_days', e.target.value)}
+                                                            className="w-full text-sm bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-sm py-2 px-3 pr-28 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/40 focus:border-blue-600 dark:text-slate-300 transition-colors"
+                                                            min="1"
+                                                            max="31"
+                                                        />
+                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-slate-400">late days = 1 day cut</span>
+                                                    </div>
+                                                    <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+                                                        e.g. 3 means every 3 late days deducts 1 day's pay. Default is 3.
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -466,7 +515,7 @@ export default function Structure({ employees }) {
                                                     </button>
                                                     <button
                                                         type="submit"
-                                                        disabled={processing}
+                                                        disabled={processing || percentageOverLimit}
                                                         className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >
                                                         <FiSave className="h-3.5 w-3.5" />
