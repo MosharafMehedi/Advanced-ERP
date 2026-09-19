@@ -129,7 +129,7 @@ class EmployeeController extends Controller
                 'email' => $email,
                 'password' => Hash::make('12345678'),
             ]);
-            $data['user_id'] = $newUser->id;
+            $data['user_id'] = $newUser->id; 
         }
 
         if ($request->hasFile('profile_photo')) {
